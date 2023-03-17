@@ -6,7 +6,7 @@ module ActiveSpell
   # Simu's time calculations
   #
 
-  attr_reader :update_spell_durations, :update_spell_names, :makeychange
+  attr_accessor :update_spell_durations, :update_spell_names, :makeychange
 
   def self.get_spell_info
     puts "spell update requested\r\n" if $infomon_debug
