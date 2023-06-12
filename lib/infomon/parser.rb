@@ -30,9 +30,6 @@ module Infomon
       NoCitizenship = /You don't seem to have citizenship\./.freeze
       Society = /^\s+You are a (?<standing>Master|member) (?:in|of) the (?<society>Order of Voln|Council of Light|Guardians of Sunfist)(?: at (?:rank|step) (?<rank>[0-9]+))?\.$/.freeze
       NoSociety = /^\s+You are not a member of any society at this time./.freeze
-      Warcries = %r[^\s+(?<name>(?:Bertrandt's Bellow|Yertie's Yowlp|Gerrelle's Growl|Seanette's Shout|Carn's Cry|Horland's Holler))$]
-      NoWarcries = %r[^You must be an active member of the Warrior Guild to use this skill\.$]
-
       # TODO: refactor / streamline?
       SleepActive = /^Your mind goes completely blank\.$|^You close your eyes and slowly drift off to sleep\.$|^You slump to the ground and immediately fall asleep\.  You must have been exhausted!$/.freeze
       SleepNoActive = /^Your thoughts slowly come back to you as you find yourself lying on the ground\.  You must have been sleeping\.$|^You wake up from your slumber\.$|^You are awoken|^You awake/.freeze
@@ -49,7 +46,7 @@ module Infomon
                          ExprEnd, SkillStart, Skill, Spell, SkillEnd, PSMStart, PSM, PSMEnd, Levelup, SpellsSolo,
                          Citizenship, NoCitizenship, Society, NoSociety, SleepActive, SleepNoActive, BindActive,
                          BindNoActive, SilenceActive, SilenceNoActive, CalmActive, CalmNoActive, CutthroatActive,
-                         CutthroatNoActive, Warcries, NoWarcries)
+                         CutthroatNoActive)
     end
 
     def self.parse(line)
@@ -111,18 +108,6 @@ module Infomon
           :ok
         when Pattern::SkillStart
           @skills_hold = []
-          :ok
-        when Pattern::Warcries
-          match = Regexp.last_match
-          Infomon.set("psm.%s" % match[:name].gsub("'", ''), 1)
-          :ok
-        when Pattern::NoWarcries
-          Infomon.upsert_batch([["psm.bertrandts_bellow", 0],
-                                ["psm.yerties_yowlp", 0],
-                                ["psm.gerrelles_growl", 0],
-                                ["psm.seanettes_shout", 0],
-                                ["psm.carns_cry", 0],
-                                ["psm.horlands_holler", 0]])
           :ok
         when Pattern::Skill
           match = Regexp.last_match
