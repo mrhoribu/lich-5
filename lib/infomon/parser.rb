@@ -13,6 +13,7 @@ module Infomon
       Levelup = %r[^\s+(?<stat>\w+)\s+\(\w{3}\)\s+:\s+(?<value>\d+)\s+(?:\+1)\s+\.\.\.\s+(?<bonus>\d+)(?:\s+\+1)?$]
       CharRaceProf = %r[^Name:\s+(?<name>[A-z\s']+)\s+Race:\s+(?<race>[A-z]+|[A-z]+(?: |-)[A-z]+)\s+Profession:\s+(?<profession>[-A-z]+)]
       CharGenderAgeExpLevel = %r[^Gender:\s+(?<gender>[A-z]+)\s+Age:\s+(?<age>[,0-9]+)\s+Expr:\s+(?<experience>[0-9,]+)\s+Level:\s+(?<level>[0-9]+)]
+      Warcries = %r[^\s+(?<name>(Bertrandt's Bellow|Yertie's Yowlp|Gerrelle's Growl|Seanette's Shout|Carn's Cry|Horland's Holler)+)$]
 
       # adding boolean status detection
       # todo: refactor / streamline?
@@ -36,7 +37,7 @@ module Infomon
 
       All = Regexp.union(Stat, Citizenship, NoCitizenship, Society, NoSociety, PSM, Skill, Spell,
                          Levelup, SleepActive, SleepNoActive, BindActive, BindNoActive, CharRaceProf, CharGenderAgeExpLevel,
-                         SilenceActive, SilenceNoActive, CalmActive, CalmNoActive, CutthroatActive, CutthroatNoActive,
+                         Warcries, SilenceActive, SilenceNoActive, CalmActive, CalmNoActive, CutthroatActive, CutthroatNoActive,
                          Fame, RealExp, AscExp, TotalExp, LTE)
     end
 
@@ -88,6 +89,10 @@ module Infomon
         when Pattern::PSM
           match = Regexp.last_match
           Infomon.set("psm.%s" % match[:command], match[:ranks].to_i)
+          :ok
+        when Pattern::Warcries
+          match = Regexp.last_match
+          Infomon.set("psm.%s" % match[:name].split(' ')[1], 1)
           :ok
         when Pattern::Skill
           match = Regexp.last_match
