@@ -283,6 +283,7 @@ Feat
     end
   end
 
+  context "warcry" do
     it "handles warcry info" do
       output = <<-Warcry
 You have learned the following War Cries:
