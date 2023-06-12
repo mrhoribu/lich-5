@@ -14,6 +14,7 @@ module Infomon
       CharRaceProf = %r[^Name:\s+(?<name>[A-z\s']+)\s+Race:\s+(?<race>[A-z]+|[A-z]+(?: |-)[A-z]+)\s+Profession:\s+(?<profession>[-A-z]+)]
       CharGenderAgeExpLevel = %r[^Gender:\s+(?<gender>[A-z]+)\s+Age:\s+(?<age>[,0-9]+)\s+Expr:\s+(?<experience>[0-9,]+)\s+Level:\s+(?<level>[0-9]+)]
       Warcries = %r[^\s+(?<name>(?:Bertrandt's Bellow|Yertie's Yowlp|Gerrelle's Growl|Seanette's Shout|Carn's Cry|Horland's Holler)+)$]
+      NoWarcries = %r[^You must be an active member of the Warrior Guild to use this skill\.$]
 
       # adding boolean status detection
       # todo: refactor / streamline?
@@ -92,7 +93,15 @@ module Infomon
           :ok
         when Pattern::Warcries
           match = Regexp.last_match
-          Infomon.set("psm.%s" % match[:name].split(' ')[1], 1)
+          Infomon.set("warcry.%s" % match[:name].gsub("'",''), 1)
+          :ok
+        when Pattern::NoWarcries
+          Infomon.set("warcry.bertrandts_bellow", 0)
+          Infomon.set("warcry.yerties_yowlp", 0)
+          Infomon.set("warcry.gerrelles_growl", 0)
+          Infomon.set("warcry.seanettes_shout", 0)
+          Infomon.set("warcry.carns_cry", 0)
+          Infomon.set("warcry.horlands_holler", 0)
           :ok
         when Pattern::Skill
           match = Regexp.last_match
