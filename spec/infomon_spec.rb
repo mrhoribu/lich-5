@@ -57,20 +57,20 @@ describe Infomon::Parser, ".parse" do
   context "stats" do
     it "handles stats" do
       test_stats = <<-Stuffed
-Name: testing Race: Half-Krolvin  Profession: Monk (not shown)
-Gender: Male    Age: 0    Expr: 167,500    Level:  12
-              Strength (STR):   110 (30)    ...  110 (30)
-          Constitution (CON):   104 (22)    ...  104 (22)
-             Dexterity (DEX):   100 (35)    ...  100 (35)
-               Agility (AGI):   100 (30)    ...  100 (30)
-            Discipline (DIS):   110 (20)    ...  110 (20)
-                  Aura (AUR):   100 (-35)   ...  100 (35)
-                 Logic (LOG):   108 (29)    ...  118 (34)
-             Intuition (INT):    99 (29)    ...   99 (29)
-                Wisdom (WIS):    84 (22)    ...   84 (22)
-             Influence (INF):   100 (20)    ...  108 (24)
-Mana:  415   Silver: 0
-Stuffed
+        Name: testing Race: Half-Krolvin  Profession: Monk (not shown)
+        Gender: Male    Age: 0    Expr: 167,500    Level:  12
+                      Strength (STR):   110 (30)    ...  110 (30)
+                  Constitution (CON):   104 (22)    ...  104 (22)
+                     Dexterity (DEX):   100 (35)    ...  100 (35)
+                       Agility (AGI):   100 (30)    ...  100 (30)
+                    Discipline (DIS):   110 (20)    ...  110 (20)
+                          Aura (AUR):   100 (-35)   ...  100 (35)
+                         Logic (LOG):   108 (29)    ...  118 (34)
+                     Intuition (INT):    99 (29)    ...   99 (29)
+                        Wisdom (WIS):    84 (22)    ...   84 (22)
+                     Influence (INF):   100 (20)    ...  108 (24)
+        Mana:  415   Silver: 0
+      Stuffed
       test_stats.split("\n").each { |line| pp Infomon::Parser.parse(line) }
 
       expect(Infomon.get("stat.aura")).to eq(100)
