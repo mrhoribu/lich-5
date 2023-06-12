@@ -93,7 +93,7 @@ module Infomon
           :ok
         when Pattern::Warcries
           match = Regexp.last_match
-          Infomon.set("psm.%s" % match[:name].gsub("'",''), 1)
+          Infomon.set("psm.%s" % match[:name].gsub("'", ''), 1)
           :ok
         when Pattern::NoWarcries
           Infomon.set("psm.bertrandts_bellow", 0)
