@@ -38,7 +38,7 @@ module Infomon
 
       All = Regexp.union(Stat, Citizenship, NoCitizenship, Society, NoSociety, PSM, Skill, Spell,
                          Levelup, SleepActive, SleepNoActive, BindActive, BindNoActive, CharRaceProf, CharGenderAgeExpLevel,
-                         Warcries, SilenceActive, SilenceNoActive, CalmActive, CalmNoActive, CutthroatActive, CutthroatNoActive,
+                         Warcries, NoWarcries, SilenceActive, SilenceNoActive, CalmActive, CalmNoActive, CutthroatActive, CutthroatNoActive,
                          Fame, RealExp, AscExp, TotalExp, LTE)
     end
 
