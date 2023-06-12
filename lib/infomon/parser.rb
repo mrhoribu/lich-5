@@ -93,15 +93,15 @@ module Infomon
           :ok
         when Pattern::Warcries
           match = Regexp.last_match
-          Infomon.set("warcry.%s" % match[:name].gsub("'",''), 1)
+          Infomon.set("psm.%s" % match[:name].gsub("'",''), 1)
           :ok
         when Pattern::NoWarcries
-          Infomon.set("warcry.bertrandts_bellow", 0)
-          Infomon.set("warcry.yerties_yowlp", 0)
-          Infomon.set("warcry.gerrelles_growl", 0)
-          Infomon.set("warcry.seanettes_shout", 0)
-          Infomon.set("warcry.carns_cry", 0)
-          Infomon.set("warcry.horlands_holler", 0)
+          Infomon.set("psm.bertrandts_bellow", 0)
+          Infomon.set("psm.yerties_yowlp", 0)
+          Infomon.set("psm.gerrelles_growl", 0)
+          Infomon.set("psm.seanettes_shout", 0)
+          Infomon.set("psm.carns_cry", 0)
+          Infomon.set("psm.horlands_holler", 0)
           :ok
         when Pattern::Skill
           match = Regexp.last_match
