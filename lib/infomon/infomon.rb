@@ -22,6 +22,8 @@ module Infomon
   @file = File.join(@root, "infomon.db")
   @db   = Sequel.sqlite(@file)
   @db.loggers << Logger.new($stdout) if ENV["DEBUG"]
+  @sql_queue = Queue.new
+  @sql_mutex = Mutex.new
 
   def self.file
     @file
@@ -29,6 +31,14 @@ module Infomon
 
   def self.db
     @db
+  end
+
+  def self.mutex
+    @sql_mutex
+  end
+  
+  def self.queue
+    @sql_queue
   end
 
   def self.context!
@@ -77,7 +87,7 @@ module Infomon
   end
 
   def self.get(key)
-    result = self.table[key: self._key(key)]
+    result = Infomon.mutex.synchronize { self.table[key: self._key(key)] }
     return nil unless result
 
     val = result[:value]
@@ -114,6 +124,20 @@ module Infomon
       #{upserts}
       COMMIT
     Sql
+  end
+  
+  Thread.new do
+    loop do
+      current_job = Infomon.queue.pop
+      Infomon.mutex.synchronize do
+        case current_job[:type]
+        when "set"
+          Infomon.set(current_job[:value][0], current_job[:value][1])
+        when "upsert_batch"
+          Infomon.upsert_batch(current_job[:value])
+        end
+      end
+    end
   end
 
   require_relative "parser"
