@@ -36,7 +36,7 @@ module Infomon
   def self.mutex
     @sql_mutex
   end
-  
+
   def self.queue
     @sql_queue
   end
@@ -125,7 +125,7 @@ module Infomon
       COMMIT
     Sql
   end
-  
+
   Thread.new do
     loop do
       current_job = Infomon.queue.pop
