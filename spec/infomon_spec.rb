@@ -31,8 +31,10 @@ describe Infomon, ".setup!" do
       k = "stats.influence"
       # handles when value doesn't exist
       Infomon.queue.push(:type => 'set', :value => [k, 30])
+      sleep(0.1)
       expect(Infomon.get(k)).to eq(30)
       Infomon.queue.push(:type => 'set', :value => [k, 40])
+      sleep(0.1)
       # handles upsert on already existing values
       expect(Infomon.get(k)).to eq(40)
     end
@@ -48,11 +50,13 @@ describe Infomon::Parser, ".parse" do
   context "citizenship" do
     it "handles citizenship in a town" do
       pp Infomon::Parser.parse %[You currently have full citizenship in Wehnimer's Landing.]
+      sleep(0.1)
       expect(Infomon.get("citizenship")).to eq(%[Wehnimer's Landing])
     end
 
     it "handles no citizenship" do
       pp Infomon::Parser.parse %[You don't seem to have citizenship.]
+      sleep(0.1)
       expect(Infomon.get("citizenship")).to eq("None")
     end
   end
@@ -75,6 +79,7 @@ Gender: Male    Age: 0    Expr: 167,500    Level:  12
 Mana:  415   Silver: 0
 Stuffed
       test_stats.split("\n").each { |line| pp Infomon::Parser.parse(line) }
+      sleep(0.1)
 
       expect(Infomon.get("stat.aura")).to eq(100)
       expect(Infomon.get("stat.aura_bonus")).to eq(-35)
@@ -101,6 +106,7 @@ Stuffed
               Wisdom (WIS) :  66   +1  ...     13
       Levelup
       levelup.split("\n").each { |line| pp Infomon::Parser.parse(line) }
+      sleep(0.1)
 
       expect(Infomon.get("stat.dexterity")).to eq(37)
       expect(Infomon.get("stat.dexterity_bonus")).to eq(4)
@@ -118,6 +124,7 @@ Stuffed
       Experience
 
       output.split("\n").map { |line| pp Infomon::Parser.parse(line) }
+      sleep(0.1)
 
       expect(Infomon.get("experience.fame")).to eq(4_804_958)
       expect(Infomon.get("experience.fxp_current")).to eq(1_350)
@@ -158,6 +165,7 @@ testing, the following Shield Specializations are available:
    Subcategory: all
 Shield
       output.split("\n").map { |line| pp Infomon::Parser.parse(line) }
+      sleep(0.1)
 
       expect(Infomon.get("psm.bash")).to eq(4)
       expect(Infomon.get("psm.throw")).to eq(5)
@@ -202,6 +210,7 @@ testing, the following Combat Maneuvers are available:
 Cman
 
       output.split("\n").map { |line| pp Infomon::Parser.parse(line) }
+      sleep(0.1)
 
       expect(Infomon.get("psm.toughness")).to eq(3)
       expect(Infomon.get("psm.subdue")).to eq(6)
@@ -232,6 +241,7 @@ testing, the following Armor Specializations are available:
 Armor
 
       output.split("\n").map { |line| pp Infomon::Parser.parse(line) }
+      sleep(0.1)
 
       expect(Infomon.get("psm.support")).to eq(3)
       expect(Infomon.get("psm.crush")).to eq(2)
@@ -255,6 +265,7 @@ testing, the following Weapon Techniques are available:
 Weapon
 
       output.split("\n").map { |line| pp Infomon::Parser.parse(line) }
+      sleep(0.1)
 
       expect(Infomon.get("psm.flurry")).to eq(5)
       expect(Infomon.get("psm.riposte")).to eq(5)
@@ -280,6 +291,7 @@ testing, the following Feats are available:
 Feat
 
       output.split("\n").map { |line| pp Infomon::Parser.parse(line) }
+      sleep(0.1)
 
       expect(Infomon.get("psm.martialmastery")).to eq(1)
       expect(Infomon.get("psm.silentstrike")).to eq(5)
