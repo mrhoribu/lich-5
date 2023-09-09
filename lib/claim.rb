@@ -1,0 +1,99 @@
+require 'oga'
+
+module Claim
+  Lock            = Mutex.new
+  @claimed_room ||= nil
+  @mine         ||= false
+  @buffer         = []
+  @others         = []
+  @timestamp      = Time.now
+
+  def self.claim_room(id)
+    @claimed_room = id.to_i
+    @timestamp    = Time.now
+    Log.out("claimed #{@claimed_room}", label: %i(claim room)) if defined? Log
+    Lock.unlock
+  end
+
+  def self.claimed_room
+    @claimed_room
+  end
+
+  def self.current?
+    Lock.synchronize { @mine.eql?(true) }
+  end
+
+  def self.mine?
+    self.current?
+  end
+
+  def self.others
+    @others
+  end
+
+  def self.members
+    return [] unless defined? Group
+
+    if Group.checked?
+      Group.members.map(&:noun)
+    else
+      []
+    end
+  end
+
+  def self.clustered
+    return [] unless defined? Cluster 
+    Cluster.connected
+  end
+
+  def self.handle_room
+    begin
+      lines = @buffer.dup
+      @buffer = []
+      room_xml = lines.join("\n").gsub("room players", "room-players")
+      visible_others = lines.find {|line| line.start_with?("Also here: ")} || ""
+      room_info = Oga.parse_xml("<move>%s</move>" % room_xml)
+      room_pcs = Oga.parse_xml("<players>%s</players>" % visible_others).css("a").map {|ele| ele.attr("noun").value }
+      room_pcs << :hidden if room_xml =~ /obvious signs of someone hiding/
+      @others = room_pcs - self.clustered - self.members
+      unless @others.empty?
+        @mine = false
+        return Log.out("prevented -> %s" % @others.join(", "), label: %i(claim others)) 
+      end
+      nav = room_info.css("nav").first
+      @mine = true
+      self.claim_room nav.attr("rm").value unless nav.nil?
+    rescue StandardError => e
+      Log.out(e)
+    ensure
+      Lock.unlock if Lock.owned?
+    end
+  end
+
+  def self.ingest(line)
+    @buffer << line if line =~ /<nav rm='(\d+)'/ 
+    Lock.lock if not Lock.owned? and @buffer.size > 0
+    @buffer << line if @buffer.size > 0
+    self.handle_room if line =~ /<compass>/ and @buffer.size > 0
+  end
+
+  def self.hook()
+    DownstreamHook.add("claim/room", -> line {
+      begin
+        self.ingest(line)
+      rescue => exception
+        Log.out(exception, label: %i(room claim err))
+      ensure
+        return line
+      end
+    })
+  end
+
+  def self.watch!
+    self.hook()
+  end
+
+  def self.unwatch!
+    DownstreamHook.remove("claim/room")
+  end
+end
