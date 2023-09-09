@@ -1,5 +1,3 @@
-require 'oga'
-
 module Claim
   Lock            = Mutex.new
   @claimed_room ||= nil
@@ -90,6 +88,19 @@ module Claim
   end
 
   def self.watch!
+    gems_to_load = ['oga']
+    failed_to_load = []
+    gems_to_load.each { |gem|
+      unless Gem::Dependency.new(gem).matching_specs.max_by(&:version).nil?
+        require gem
+      else
+        failed_to_load.push(gem)
+      end
+    }
+    unless failed_to_load.empty?
+      echo "Requires Ruby gems: #{failed_to_load.join(", ")}"
+      echo "Please install the above gem(s) to use the Claim module"
+    end
     self.hook()
   end
 
