@@ -56,13 +56,21 @@ module Claim
       @others = room_pcs - self.clustered - self.members
       unless @others.empty?
         @mine = false
-        return Log.out("prevented -> %s" % @others.join(", "), label: %i(claim others))
+        if defined? Log
+          return Log.out("prevented -> %s" % @others.join(", "), label: %i(claim others))
+        else
+          return ("Claim prevented -> %s" % @others.join(", "))
+        end
       end
       nav = room_info.css("nav").first
       @mine = true
       self.claim_room nav.attr("rm").value unless nav.nil?
     rescue StandardError => e
-      Log.out(e)
+      if defined? Log
+        Log.out(e)
+      else
+        respond "Claim Error: #{e}"
+      end
     ensure
       Lock.unlock if Lock.owned?
     end
@@ -80,10 +88,13 @@ module Claim
       begin
         self.ingest(line)
       rescue => exception
-        Log.out(exception, label: %i(room claim err))
-      ensure
-        line
+        if defined? Log
+          Log.out(exception, label: %i(room claim err))
+        else
+          respond "Claim Error: #{exception}"
+        end
       end
+      return line
     })
   end
 
@@ -106,6 +117,7 @@ module Claim
 
   def self.unwatch!
     DownstreamHook.remove("claim/room")
+    @mine = false
   end
 
   def self.watching?
