@@ -40,7 +40,7 @@ module Claim
   end
 
   def self.clustered
-    return [] unless defined? Cluster 
+    return [] unless defined? Cluster
     Cluster.connected
   end
 
@@ -49,14 +49,14 @@ module Claim
       lines = @buffer.dup
       @buffer = []
       room_xml = lines.join("\n").gsub("room players", "room-players")
-      visible_others = lines.find {|line| line.start_with?("Also here: ")} || ""
+      visible_others = lines.find { |line| line.start_with?("Also here: ") } || ""
       room_info = Oga.parse_xml("<move>%s</move>" % room_xml)
-      room_pcs = Oga.parse_xml("<players>%s</players>" % visible_others).css("a").map {|ele| ele.attr("noun").value }
+      room_pcs = Oga.parse_xml("<players>%s</players>" % visible_others).css("a").map { |ele| ele.attr("noun").value }
       room_pcs << :hidden if room_xml =~ /obvious signs of someone hiding/
       @others = room_pcs - self.clustered - self.members
       unless @others.empty?
         @mine = false
-        return Log.out("prevented -> %s" % @others.join(", "), label: %i(claim others)) 
+        return Log.out("prevented -> %s" % @others.join(", "), label: %i(claim others))
       end
       nav = room_info.css("nav").first
       @mine = true
@@ -69,20 +69,20 @@ module Claim
   end
 
   def self.ingest(line)
-    @buffer << line if line =~ /<nav rm='(\d+)'/ 
+    @buffer << line if line =~ /<nav rm='(\d+)'/
     Lock.lock if not Lock.owned? and @buffer.size > 0
     @buffer << line if @buffer.size > 0
     self.handle_room if line =~ /<compass>/ and @buffer.size > 0
   end
 
   def self.hook()
-    DownstreamHook.add("claim/room", -> line {
+    DownstreamHook.add("claim/room", ->line {
       begin
         self.ingest(line)
       rescue => exception
         Log.out(exception, label: %i(room claim err))
       ensure
-        return line
+        line
       end
     })
   end
