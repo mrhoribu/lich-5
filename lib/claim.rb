@@ -107,4 +107,8 @@ module Claim
   def self.unwatch!
     DownstreamHook.remove("claim/room")
   end
+
+  def self.watching?
+    DownstreamHook.list.include?('claim/room')
+  end
 end
