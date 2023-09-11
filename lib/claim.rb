@@ -10,7 +10,7 @@ module Claim
     @claimed_room = id.to_i
     @timestamp    = Time.now
     if defined? Log
-      Log.out("claimed #{@claimed_room}", label: %i(claim room)) 
+      Log.out("claimed #{@claimed_room}", label: %i(claim room))
     else
       respond "claimed #{@claimed_room}"
     end
@@ -63,7 +63,7 @@ module Claim
         if defined? Log
           return Log.out("prevented -> %s" % @others.join(", "), label: %i(claim others))
         else
-          return respond ("Claim prevented -> %s" % @others.join(", "))
+          return respond("Claim prevented -> %s" % @others.join(", "))
         end
       end
       nav = room_info.css("nav").first
@@ -129,12 +129,12 @@ module Claim
   end
 
   def self.info
-    info = {'Current Room' => XMLData.room_id,
-            'Mine' => Claim.mine?,
-            'Claimed Room' => Claim.claimed_room,
-            'Checked' => Claim.checked?,
-            'Last Room' => Claim.last_room,
-            'Others' => Claim.others}
+    info = { 'Current Room' => XMLData.room_id,
+             'Mine'         => Claim.mine?,
+             'Claimed Room' => Claim.claimed_room,
+             'Checked'      => Claim.checked?,
+             'Last Room'    => Claim.last_room,
+             'Others'       => Claim.others }
     respond JSON.pretty_generate(info)
   end
 end
