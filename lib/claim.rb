@@ -127,4 +127,14 @@ module Claim
   def self.watching?
     DownstreamHook.list.include?('claim/room')
   end
+
+  def self.info
+    info = {'Current Room' => XMLData.room_id,
+            'Mine' => Claim.mine?,
+            'Claimed Room' => Claim.claimed_room,
+            'Checked' => Claim.checked?,
+            'Last Room' => Claim.last_room,
+            'Others' => Claim.others}
+    respond JSON.pretty_generate(info)
+  end
 end
