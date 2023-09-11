@@ -9,7 +9,11 @@ module Claim
   def self.claim_room(id)
     @claimed_room = id.to_i
     @timestamp    = Time.now
-    Log.out("claimed #{@claimed_room}", label: %i(claim room)) if defined? Log
+    if defined? Log
+      Log.out("claimed #{@claimed_room}", label: %i(claim room)) 
+    else
+      respond "claimed #{@claimed_room}"
+    end
     Lock.unlock
   end
 
@@ -59,7 +63,7 @@ module Claim
         if defined? Log
           return Log.out("prevented -> %s" % @others.join(", "), label: %i(claim others))
         else
-          return ("Claim prevented -> %s" % @others.join(", "))
+          return respond ("Claim prevented -> %s" % @others.join(", "))
         end
       end
       nav = room_info.css("nav").first
