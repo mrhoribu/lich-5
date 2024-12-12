@@ -124,7 +124,7 @@ module Lich
                                   :slowed          => false,
                                   :wound_rank      => 3,
                                   :secondary_wound => nil,
-                                  :regex           => /Flames incinerate scalp completely and blacken skullcap.  Not very fashionable./ },
+                                  :regex           => /Flames incinerate scalp completely and blacken scullcap./ },
                            6 =>
                                 { :type            => "Fire",
                                   :location        => "Head",
@@ -297,7 +297,7 @@ module Lich
                                   :slowed          => false,
                                   :wound_rank      => 2,
                                   :secondary_wound => nil,
-                                  :regex           => /Flames incinerate muscle tissue in neck exposing the trachea.  More than you ever wanted to see./ },
+                                  :regex           => /Flames incinerate muscle tissue in neck exposing trachea./ },
                            5 =>
                                 { :type            => "Fire",
                                   :location        => "Neck",
@@ -355,7 +355,7 @@ module Lich
                                   :wound_rank      => 3,
                                   :secondary_wound => nil,
                                   :regex           =>
-                                                      /.*? takes a breath of super\-heated air and expires gasping./ },
+                                                      /A .*? takes a breath of super\-heated air and expires gasping./ },
                            8 =>
                                 { :type            => "Fire",
                                   :location        => "Neck",
@@ -913,7 +913,7 @@ module Lich
                                   :slowed          => false,
                                   :wound_rank      => 3,
                                   :secondary_wound => nil,
-                                  :regex           => /Flames cook a .*?'s chest./ },
+                                  :regex           => /Flames cook .*?'s chest.  Looks about medium well./ },
                            7 =>
                                 { :type            => "Fire",
                                   :location        => "Chest",
@@ -1143,7 +1143,7 @@ module Lich
                                   :wound_rank      => 3,
                                   :secondary_wound => nil,
                                   :regex           =>
-                                                      /Intestines rupture from intense heat; .*? dies a slow, painful death./ },
+                                                      /Intestines rupture from intense heat; dies a slow, painful death./ },
                            9 =>
                                 { :type            => "Fire",
                                   :location        => "Abdomen",

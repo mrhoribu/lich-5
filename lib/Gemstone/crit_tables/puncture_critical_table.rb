@@ -240,7 +240,7 @@ module Lich
                                   :slowed          => false,
                                   :wound_rank      => 1,
                                   :secondary_wound => nil,
-                                  :regex           => /Minor strike to (?:the )?neck./ },
+                                  :regex           => /Minor strike to neck./ },
                            2 =>
                                 { :type            => "Puncture",
                                   :location        => "Neck",
@@ -794,7 +794,7 @@ module Lich
                                   :slowed          => false,
                                   :wound_rank      => 0,
                                   :secondary_wound => nil,
-                                  :regex           => /Blow slides along (?:the )?ribs./ },
+                                  :regex           => /Blow slides along ribs./ },
                            1 =>
                                 { :type            => "Puncture",
                                   :location        => "Chest",
