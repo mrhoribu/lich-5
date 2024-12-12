@@ -18,7 +18,7 @@ shared_examples "task predicate examples" do
   end
 end
 
-class Lich::Gemstone::Bounty
+class Bounty
   describe Task do
     let(:requirements) { {} }
 
