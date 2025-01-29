@@ -1,6 +1,7 @@
 require 'tempfile'
 require 'json'
 require 'fileutils'
+require 'rbconfig'
 
 module Lich
   module Common
