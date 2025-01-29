@@ -56,7 +56,7 @@ module Lich
           when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
             :windows
           when /darwin|mac os/
-            :macosx
+            :macos
           when /linux|solaris|bsd/
             :linux
           else
