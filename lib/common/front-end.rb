@@ -50,19 +50,17 @@ module Lich
       end
 
       def self.operating_system
-        os ||= (
-          host_os = RbConfig::CONFIG['host_os']
-          case host_os
-          when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
-            :windows
-          when /darwin|mac os/
-            :macos
-          when /linux|solaris|bsd/
-            :linux
-          else
-            raise Error::WebDriverError, "unknown os: #{host_os.inspect}"
-          end
-        )
+        host_os = RbConfig::CONFIG['host_os']
+        case host_os
+        when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
+          :windows
+        when /darwin|mac os/
+          :macos
+        when /linux|solaris|bsd/
+          :linux
+        else
+          raise Error::WebDriverError, "unknown os: #{host_os.inspect}"
+        end
       end
     end
   end
