@@ -6,6 +6,8 @@ require 'rbconfig'
 module Lich
   module Common
     module Frontend
+      require_relative 'frontend/warlock'
+
       @session_file = nil
       @tmp_session_dir = File.join Dir.tmpdir, "simutronics", "sessions"
       @supports_xml = true
