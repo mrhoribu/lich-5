@@ -7,6 +7,8 @@ module Lich
     module Frontend
       @session_file = nil
       @tmp_session_dir = File.join Dir.tmpdir, "simutronics", "sessions"
+      @supports_xml = true
+      @client = ""
 
       def self.create_session_file(name, host, port, display_session: true)
         return if name.nil?
@@ -26,6 +28,22 @@ module Lich
       def self.cleanup_session_file
         return if @session_file.nil?
         File.delete(@session_file) if File.exist? @session_file
+      end
+
+      def self.supports_xml
+        @supports_xml
+      end
+
+      def self.supports_xml=(value)
+        @supports_xml = value
+      end
+
+      def self.client
+        @client
+      end
+
+      def self.client=(value)
+        @client = value
       end
     end
   end
