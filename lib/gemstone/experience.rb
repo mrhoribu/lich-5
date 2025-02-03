@@ -50,6 +50,10 @@ module Lich
       def self.deaths_sting
         Infomon.get("experience.deaths_sting")
       end
+
+      def self.wisdom_of_the_ages
+        Infomon.get("experience.wisdom_of_the_ages")
+      end
     end
   end
 end
