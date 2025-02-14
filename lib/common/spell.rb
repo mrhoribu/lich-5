@@ -483,6 +483,14 @@ module Lich
         end
       end
 
+      def usable?(options = {})
+        return false unless self.known?
+        return false unless self.affordable?(options)
+        return false unless self.available?(options)
+        return true
+        # fixme add injury detection
+      end
+
       def incant?
         !@no_incant
       end
