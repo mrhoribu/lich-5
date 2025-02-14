@@ -61,6 +61,8 @@ module Lich
           WealthSilverContainer = /^You are carrying (?<silver>[\d,]+) silver stored within your /.freeze
           AccountName = /^Account Name: (?<name>[\w\d\-\_]+)$/.freeze
           AccountSubscription = /^Account Type: (?<subscription>F2P|Standard|Premium)$/.freeze
+          LumnisStart = /^A soft feeling of serenity touches your mind, providing you with a clearer understanding of recent events\.$/.freeze
+          LumnisEnd = /^The soft feeling of serenity slowly dissipates from your mind\.$/.freeze
 
           # TODO: refactor / streamline?
           SleepActive = /^Your mind goes completely blank\.$|^You close your eyes and slowly drift off to sleep\.$|^You slump to the ground and immediately fall asleep\.  You must have been exhausted!$|^That is impossible to do while unconscious$/.freeze
@@ -93,7 +95,7 @@ module Lich
                              TicketBlackscrip, TicketBloodscrip, TicketEtherealScrip, TicketSoulShards, TicketRaikhen,
                              WealthSilver, WealthSilverContainer, GoalsDetected, GoalsEnded, SpellsongRenewed,
                              ThornPoisonStart, ThornPoisonProgression, ThornPoisonDeprogression, ThornPoisonEnd, CovertArtsCharges,
-                             AccountName, AccountSubscription)
+                             AccountName, AccountSubscription, LumnisStart, LumnisEnd)
         end
 
         def self.find_cat(category)
@@ -406,6 +408,12 @@ module Lich
               else
                 :noop
               end
+            when Pattern::LumnisStart
+              Gift.start
+              :ok
+            when Pattern::LumnisEnd
+              Gift.ended
+              :ok
 
             # TODO: refactor / streamline?
             when Pattern::ThornPoisonStart, Pattern::ThornPoisonProgression, Pattern::ThornPoisonDeprogression
