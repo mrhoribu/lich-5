@@ -205,6 +205,8 @@ RSpec.describe Lich::Common::Settings do
         puts("to_hash Lich::Common::Settings[:test_hash].is_a?(Hash): #{Lich::Common::Settings[:test_hash].is_a?(Hash)}")
         puts("to_hash Lich::Common::Settings[:test_hash].inspect: #{Lich::Common::Settings[:test_hash].inspect}")
         puts("to_hash Lich::Common::Settings[:test_hash].class: #{Lich::Common::Settings[:test_hash].class}")
+        puts("to_hash Lich::Common::Settings[:test_hash].instance_variable_get(:@target): #{Lich::Common::Settings[:test_hash].instance_variable_get(:@target)}")
+        puts("to_hash Lich::Common::Settings[:test_hash].instance_variable_get(:@target).inspect: #{Lich::Common::Settings[:test_hash].instance_variable_get(:@target).inspect}")
         puts("to_hash hash.inspect: #{hash.inspect}")
         expect(hash).to be_a(Hash)
         expect(hash).to eq({ a: 1, b: 2 })
