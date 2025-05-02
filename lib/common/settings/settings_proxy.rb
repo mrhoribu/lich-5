@@ -97,7 +97,7 @@ module Lich
       def to_hash
         return nil unless @target.is_a?(Hash)
 
-        @target.dup
+        Hash.new(@target.dup)
       end
 
       def to_h
@@ -107,7 +107,7 @@ module Lich
       def to_ary
         return nil unless @target.is_a?(Array)
 
-        @target.dup
+        Array.new(@target.dup)
       end
 
       def to_a
