@@ -202,6 +202,8 @@ RSpec.describe Lich::Common::Settings do
         Lich::Common::Settings[:test_hash] = { a: 1, b: 2 }
 
         hash = Lich::Common::Settings[:test_hash].to_hash
+        puts("to_hash test: #{Lich::Common::Settings[:test_hash].inspect}")
+        puts("to_hash test: #{hash.inspect}")
         expect(hash).to be_a(Hash)
         expect(hash).to eq({ a: 1, b: 2 })
 
