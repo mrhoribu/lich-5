@@ -70,6 +70,10 @@ module Lich
         pp.pp(@target)
       end
 
+      def class
+        @target.class
+      end
+
       #
       # Type checking methods
       #
