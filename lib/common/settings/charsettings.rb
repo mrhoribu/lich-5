@@ -5,11 +5,11 @@ module Lich
   module Common
     module CharSettings
       def CharSettings.[](name)
-        Settings.to_hash("#{XMLData.game}:#{XMLData.name}")[name]
+        Settings.[]("#{XMLData.game}:#{XMLData.name}", name)
       end
 
       def CharSettings.[]=(name, value)
-        Settings.set_script_settings("#{XMLData.game}:#{XMLData.name}", name, value)
+        Settings.[]=("#{XMLData.game}:#{XMLData.name}", name, value)
       end
 
       def CharSettings.to_hash
