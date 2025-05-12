@@ -3,10 +3,7 @@
 module Lich
   module Common
     require 'sequel'
-
-    require_relative 'settings/settings_proxy'
     require_relative 'settings/database_adapter'
-    require_relative 'settings/path_navigator'
 
     module Settings
       @db_adapter = DatabaseAdapter.new(DATA_DIR, :script_auto_settings)
