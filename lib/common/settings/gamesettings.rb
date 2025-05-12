@@ -13,7 +13,7 @@ module Lich
       end
 
       def GameSettings.to_hash
-        Settings.to_hash(XMLData.game")
+        Settings.to_hash(XMLData.game)
       end
 
       # deprecated
