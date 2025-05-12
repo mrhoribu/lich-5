@@ -9,63 +9,31 @@ module Lich
       @db_adapter = DatabaseAdapter.new(DATA_DIR, :script_auto_settings)
       @settings_cache = {}
 
-      def self.refresh_data(scope = ":")
-        # Requests made directly to this method want a refreshed set of data.
-        # Aliased to Settings.load for backwards compatibility.
-        script_name = Script.current.name
-        cache_key = "#{script_name}::#{scope}"
-        
-        # Get from database and update cache
-        @settings_cache[cache_key] = @db_adapter.get_settings(script_name, scope)
-      end
-
       def self.[](scope = ":", name)
         script_name = Script.current.name
-        cache_key = "#{script_name}::#{scope}"
-        
-        unless @settings_cache[cache_key]
-          @settings_cache[cache_key] = @db_adapter.get_settings(script_name, scope)
-        end
-        @settings_cache[cache_key][name]
+        @db_adapter.get_settings(script_name, scope)[name]
       end
 
       def self.[]=(scope = ":", name, value)
         script_name = Script.current.name
-        cache_key = "#{script_name}::#{scope}"
-
-        unless @settings_cache[cache_key][name] == value
-          @settings_cache[cache_key] ||= Hash.new
-          @settings_cache[cache_key][name] = value
-          @db_adapter.save_settings(script_name, @settings_cache[cache_key], scope)
-        end
-
-        return @settings_cache[cache_key][name]
+        settings = @db_adapter.get_settings(script_name, scope)
+        settings[name] = value
+        @db_adapter.save_settings(script_name, settings, scope)
+        return settings[name]
       end
 
       def self.to_h(scope = ":")
-        # Return unwrapped hash
         script_name = Script.current.name
-        cache_key = "#{script_name}::#{scope}"
-        
-        # Get from database and update cache
-        @settings_cache[cache_key] = @db_adapter.get_settings(script_name, scope)
+        @db_adapter.get_settings(script_name, scope)
       end
 
       def self.to_hash(scope = ":")
-        # Return unwrapped hash
         script_name = Script.current.name
-        cache_key = "#{script_name}::#{scope}"
-        
-        # Get from database and update cache
-        @settings_cache[cache_key] = @db_adapter.get_settings(script_name, scope)
+        @db_adapter.get_settings(script_name, scope)
       end
 
       def self.save
         # :noop
-      end
-
-      def self.load # pulled from Deprecated calls to alias to refresh_data()
-        refresh_data()
       end
 
       # Deprecated calls
