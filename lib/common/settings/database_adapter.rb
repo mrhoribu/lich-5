@@ -62,9 +62,17 @@ module Lich
       end
 
       def load_cache
-        @table.each do |entry|
-          cache_key = cache_key(entry[:script], entry[:scope])
-          @cache[cache_key] = Marshal.load(entry[:hash])
+        @failed_entry = nil
+        begin
+          @table.each do |entry|
+            @failed_entry = [entry[:script], entry[:scope], entry[:hash]]
+            cache_key = cache_key(entry[:script], entry[:scope])
+            @cache[cache_key] = Marshal.load(entry[:hash])
+          end
+        rescue ArgumentError, StandardError => e
+          Lich.log("Failed to load settings cache: #{e.message}")
+          Lich.log("#{@failed_entry}")
+          Lich.log("Backtrace: #{e.backtrace.join("\n")}")
         end
       end
     end
