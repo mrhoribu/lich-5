@@ -1,56 +1,66 @@
-# Carve out from Lich 5 for module GameSettings
-# 2024-06-13
+# Refactored Ruby-compatible Settings Implementation
 
 module Lich
   module Common
-    module GameSettings
-      def GameSettings.[](name)
-        Settings.[]("#{XMLData.game}:#{XMLData.name}", name)
+    require 'sequel'
+    require_relative 'settings/database_adapter'
+
+    module Settings
+      @db_adapter = DatabaseAdapter.new(DATA_DIR, :script_auto_settings)
+      @settings_cache = {}
+
+      def self.[](scope = ":", name)
+        script_name = Script.current.name
+        @db_adapter.get_settings(script_name, scope)[name]
       end
 
-      def GameSettings.[]=(name, value)
-        Settings.[]=("#{XMLData.game}:#{XMLData.name}", name, value)
+      def self.[]=(scope = ":", name, value)
+        script_name = Script.current.name
+        settings = @db_adapter.get_settings(script_name, scope)
+        settings[name] = value
+        @db_adapter.save_settings(script_name, settings, scope)
+        return settings[name]
       end
 
-      def GameSettings.to_hash
-        Settings.to_hash("#{XMLData.game}:#{XMLData.name}")
+      def self.to_h(scope = ":")
+        script_name = Script.current.name
+        @db_adapter.get_settings(script_name, scope)
       end
 
-      # deprecated
-      def GameSettings.load
-        Lich.deprecated('GameSettings.load', 'not using, not applicable,', caller[0], fe_log: true)
+      def self.to_hash(scope = ":")
+        script_name = Script.current.name
+        @db_adapter.get_settings(script_name, scope)
+      end
+
+      def self.save
+        # :noop
+      end
+
+      # Deprecated calls
+      def Settings.save_all
+        Lich.deprecated('Settings.save_all', 'not using, not applicable,', caller[0], fe_log: true)
         nil
       end
 
-      def GameSettings.save
-        Lich.deprecated('GameSettings.save', 'not using, not applicable,', caller[0], fe_log: true)
+      def Settings.clear
+        Lich.deprecated('Settings.clear', 'not using, not applicable,', caller[0], fe_log: true)
         nil
       end
 
-      def GameSettings.save_all
-        Lich.deprecated('GameSettings.save_all', 'not using, not applicable,', caller[0], fe_log: true)
+      def Settings.auto=(_val)
+        Lich.deprecated('Settings.auto=(val)', 'not using, not applicable,', caller[0], fe_log: true)
+      end
+
+      def Settings.auto
+        Lich.deprecated('Settings.auto', 'not using, not applicable,', caller[0], fe_log: true)
         nil
       end
 
-      def GameSettings.clear
-        Lich.deprecated('GameSettings.clear', 'not using, not applicable,', caller[0], fe_log: true)
-        nil
-      end
-
-      def GameSettings.auto=(_val)
-        Lich.deprecated('GameSettings.auto=(val)', 'not using, not applicable,', caller[0], fe_log: true)
-        return nil
-      end
-
-      def GameSettings.auto
-        Lich.deprecated('GameSettings.auto', 'not using, not applicable,', caller[0], fe_log: true)
-        nil
-      end
-
-      def GameSettings.autoload
-        Lich.deprecated('GameSettings.autoload', 'not using, not applicable,', caller[0], fe_log: true)
+      def Settings.autoload
+        Lich.deprecated('Settings.autoload', 'not using, not applicable,', caller[0], fe_log: true)
         nil
       end
     end
   end
 end
+# This code is a refactored Sequel based version of the original Lich settings implementation.
