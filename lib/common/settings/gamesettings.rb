@@ -5,15 +5,15 @@ module Lich
   module Common
     module GameSettings
       def GameSettings.[](name)
-        Settings.to_hash(XMLData.game)[name]
+        Settings.[]("#{XMLData.game}:#{XMLData.name}", name)
       end
 
       def GameSettings.[]=(name, value)
-        Settings.set_script_settings(XMLData.game, name, value)
+        Settings.[]=("#{XMLData.game}:#{XMLData.name}", name, value)
       end
 
       def GameSettings.to_hash
-        Settings.to_hash(XMLData.game)
+        Settings.to_hash("#{XMLData.game}:#{XMLData.name}")
       end
 
       # deprecated
