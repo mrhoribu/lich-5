@@ -5,11 +5,11 @@ module Lich
   module Common
     module GameSettings
       def GameSettings.[](name)
-        Settings.[]("#{XMLData.game}:#{XMLData.name}", name)
+        Settings.[](XMLData.game, name)
       end
 
       def GameSettings.[]=(name, value)
-        Settings.[]=("#{XMLData.game}:#{XMLData.name}", name, value)
+        Settings.[]=(XMLData.game, name, value)
       end
 
       def GameSettings.to_hash
