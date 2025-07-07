@@ -4,7 +4,7 @@
 
 #define MyAppName "Ruby4Lich5"
 #define MyAppVersion "5.12.2"
-#define RubyVersion "3.4.4"
+#define RubyVersion "3.4.3"
 #define MyAppPublisher "Elanthia-Online"
 #define MyAppURL "https://github.com/elanthia-online/lich-5/"
 #define MyAppExeName "Ruby4Lich5.exe"
@@ -12,7 +12,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId= {{edd9ccd7-33cb-4577-a470-fe8fd087eb02}
+AppId= {{edd9ccd7-33cb-4577-a470-fe8fd087eb03}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} Ruby {#RubyVersion} & Lich {#MyAppVersion}
