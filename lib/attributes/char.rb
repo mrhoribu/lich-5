@@ -136,7 +136,7 @@ module Lich
       end
 
       def Char.citizenship
-        Infomon.get('citizenship') if XMLData.game =~ /^GS/
+        Infomon.get('citizenship') if XMLData.game&.start_with?('GS')
       end
 
       def Char.citizenship=(_val)
@@ -144,7 +144,7 @@ module Lich
       end
 
       def Char.che
-        Infomon.get('che') if XMLData.game =~ /^GS/
+        Infomon.get('che') if XMLData.game&.start_with?('GS')
       end
     end
   end

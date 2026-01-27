@@ -62,8 +62,8 @@ module Lich
 
       def self.load!
         sleep 0.1 while XMLData.game.nil? or XMLData.game.empty?
-        return self.dragon_realms if XMLData.game =~ /DR/
-        return self.gemstone if XMLData.game =~ /GS/
+        return self.dragon_realms if XMLData.game&.start_with?('DR')
+        return self.gemstone if XMLData.game&.start_with?('GS')
         echo "could not load game specifics for %s" % XMLData.game
       end
     end

@@ -185,7 +185,7 @@ module Lich
       end
 
       def safe_to_respond?
-        if @game =~ /^DR/
+        if @game.start_with?('DR')
           !in_stream && !@bold && (!@current_style || @current_style.empty?)
         else
           return true
@@ -252,7 +252,7 @@ module Lich
             GameObj.clear_pcs
             GameObj.clear_room_desc
             @check_obvious_hiding = true
-            unless XMLData.game =~ /^DR/
+            unless XMLData.game&.start_with?('DR')
               @previous_nav_rm = @room_id
               @room_id = attributes['rm'].to_i
             end
@@ -325,7 +325,7 @@ module Lich
           if name == 'pushStream'
             @in_stream = true
             @current_stream = attributes['id'].to_s
-            if XMLData.game =~ /^GS/
+            if XMLData.game&.start_with?('GS')
               GameObj.clear_inv if attributes['id'].to_s == 'inv'
             end
           end
@@ -351,12 +351,12 @@ module Lich
           if (name == 'streamWindow')
             if (attributes['id'] == 'main') and attributes['subtitle']
               unless attributes['subtitle'].empty? || attributes['subtitle'].nil?
-                if XMLData.game =~ /^GS/
+                if XMLData.game&.start_with?('GS')
                   if Lich.display_uid == false && attributes['subtitle'][3..-1] =~ / - \d+$/
                     Lich.display_uid = true
                   end
                   @room_title = '[' + attributes['subtitle'][3..-1].gsub(/ - \d+$/, '') + ']'
-                elsif XMLData.game =~ /^DR/
+                elsif XMLData.game&.start_with?('DR')
                   # - [Bosque Deriel, Hermit's Shacks] (230008)
                   room = attributes['subtitle'].match(/(?<roomtitle>\[.*?\])(?:\s\((?<uid>\d+)\))?/)
                   @room_title = "[#{room[:roomtitle]}]"
@@ -761,7 +761,7 @@ module Lich
                 @player_status = nil
                 @arrival_pcs.push(@pc.noun) if (defined?(Lich::Claim) && Lich::Claim::Lock.owned?)
               else
-                if @game =~ /^DR/
+                if @game.start_with?('DR')
                   GameObj.clear_pcs
                   text_string.sub(/^Also here\: /, '').sub(/ and ([^,]+)\./) { ", #{$1}" }.split(', ').each { |player|
                     if player =~ / who is (.+)/
@@ -889,7 +889,7 @@ module Lich
         # https://ruby-doc.org/stdlib-2.6.1/libdoc/rexml/rdoc/REXML/StreamListener.html
 
         begin
-          if @game =~ /^DR/
+          if @game.start_with?('DR')
             if name == 'compass' and $nav_seen
               $nav_seen = false
               @second_compass = true

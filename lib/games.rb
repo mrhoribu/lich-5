@@ -424,7 +424,7 @@ module Lich
 
           # Handle infomon loading
           if !@infomon_loaded && (defined?(Infomon) || !$DRINFOMON_VERSION.nil?) && !XMLData.name.nil? && !XMLData.name.empty? && !XMLData.dialogs.empty?
-            ExecScript.start("Infomon.redo!", { quiet: true, name: "infomon_reset" }) if XMLData.game !~ /^DR/ && Infomon.db_refresh_needed?
+            ExecScript.start("Infomon.redo!", { quiet: true, name: "infomon_reset" }) if !XMLData.game&.start_with?('DR') && Infomon.db_refresh_needed?
             @infomon_loaded = true
           end
 

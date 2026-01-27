@@ -20,9 +20,9 @@ module Lich
 
     def self.stream_window(msg, window = "familiar", encode: true)
       msg = xml_encode(msg) if encode
-      if XMLData.game =~ /^GS/
+      if XMLData.game&.start_with?('GS')
         allowed_streams = ["familiar", "speech", "thoughts", "loot", "voln"]
-      elsif XMLData.game =~ /^DR/
+      elsif XMLData.game&.start_with?('DR')
         allowed_streams = ["familiar", "speech", "thoughts", "combat"]
       end
 

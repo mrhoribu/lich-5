@@ -579,8 +579,8 @@ module Lich
         ## We do not care about local edits from players to the Lich5 / script location
         ## for CORE scripts (those required to run Lich5 properly)
         updatable_scripts["all"].each { |script| self.update_file('script', script) }
-        updatable_scripts["gs"].each { |script| self.update_file('script', script) } if XMLData.game =~ /^GS/
-        updatable_scripts["dr"].each { |script| self.update_file('script', script) } if XMLData.game =~ /^DR/
+        updatable_scripts["gs"].each { |script| self.update_file('script', script) } if XMLData.game&.start_with?('GS')
+        updatable_scripts["dr"].each { |script| self.update_file('script', script) } if XMLData.game&.start_with?('DR')
 
         ## Update Lich.db value with last updated version
         Lich.core_updated_with_lich_version = version

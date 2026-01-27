@@ -681,7 +681,7 @@ reconnect_if_wanted = proc {
                   init_str.concat "<indicator id='#{indicator}' visible='#{XMLData.indicator[indicator]}'/>"
                 end
                 # These don't exist in DR.
-                if XMLData.game =~ /GS/
+                if XMLData.game&.start_with?('GS')
                   init_str.concat "<progressBar id='pbarStance' value='#{XMLData.stance_value}'/>"
                   init_str.concat "<progressBar id='mindState' value='#{XMLData.mind_value}' text='#{XMLData.mind_text}'/>"
                   init_str.concat "<progressBar id='encumlevel' value='#{XMLData.encumbrance_value}' text='#{XMLData.encumbrance_text}'/>"

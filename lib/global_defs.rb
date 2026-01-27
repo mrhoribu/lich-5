@@ -274,7 +274,7 @@ end
 
 def muckled?
   # need a better DR solution
-  if XMLData.game =~ /GS/
+  if XMLData.game&.start_with?('GS')
     return Status.muckled?
   else
     return checkdead || checkstunned || checkwebbed
@@ -1274,52 +1274,52 @@ def checkbounty
 end
 
 def checksleeping
-  return Status.sleeping? if XMLData.game =~ /GS/
+  return Status.sleeping? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel checksleeping command not enabled in #{XMLData.game}"
 end
 
 def sleeping?
-  return Status.sleeping? if XMLData.game =~ /GS/
+  return Status.sleeping? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel sleeping? command not enabled in #{XMLData.game}"
 end
 
 def checkbound
-  return Status.bound? if XMLData.game =~ /GS/
+  return Status.bound? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel checkbound command not enabled in #{XMLData.game}"
 end
 
 def bound?
-  return Status.bound? if XMLData.game =~ /GS/
+  return Status.bound? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel bound? command not enabled in #{XMLData.game}"
 end
 
 def checksilenced
-  return Status.silenced? if XMLData.game =~ /GS/
+  return Status.silenced? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel checksilenced command not enabled in #{XMLData.game}"
 end
 
 def silenced?
-  return Status.silenced? if XMLData.game =~ /GS/
+  return Status.silenced? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel silenced command not enabled in #{XMLData.game}"
 end
 
 def checkcalmed
-  return Status.calmed? if XMLData.game =~ /GS/
+  return Status.calmed? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel checkcalmed command not enabled in #{XMLData.game}"
 end
 
 def calmed?
-  return Status.calmed? if XMLData.game =~ /GS/
+  return Status.calmed? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel calmed? command not enabled in #{XMLData.game}"
 end
 
 def checkcutthroat
-  return Status.cutthroat? if XMLData.game =~ /GS/
+  return Status.cutthroat? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel checkcutthroat command not enabled in #{XMLData.game}"
 end
 
 def cutthroat?
-  return Status.cutthroat? if XMLData.game =~ /GS/
+  return Status.cutthroat? if XMLData.game&.start_with?('GS')
   fail "Error: toplevel cutthroat? command not enabled in #{XMLData.game}"
 end
 
@@ -1767,7 +1767,7 @@ def _respond(first = "", *messages)
 end
 
 def noded_pulse
-  unless XMLData.game =~ /DR/
+  unless XMLData.game&.start_with?('GS')
     if Stats.prof =~ /warrior|rogue|sorcerer/i
       stats = [Skills.smc.to_i, Skills.emc.to_i]
     elsif Stats.prof =~ /empath|bard/i
@@ -1786,7 +1786,7 @@ def noded_pulse
 end
 
 def unnoded_pulse
-  unless XMLData.game =~ /DR/
+  unless XMLData.game&.start_with?('GS')
     if Stats.prof =~ /warrior|rogue|sorcerer/i
       stats = [Skills.smc.to_i, Skills.emc.to_i]
     elsif Stats.prof =~ /empath|bard/i
@@ -2292,18 +2292,18 @@ def do_client(client_string)
           Lich.log "error: #{$!}\n\t#{$!.backtrace.join("\n\t")}"
         end
       end
-    elsif XMLData.game =~ /^GS/ && cmd =~ /^infomon sync/i
+    elsif XMLData.game&.start_with?('GS') && cmd =~ /^infomon sync/i
       ExecScript.start("Infomon.sync", { :quiet => true })
-    elsif XMLData.game =~ /^GS/ && cmd =~ /^infomon (?:reset|redo)!?/i
+    elsif XMLData.game&.start_with?('GS') && cmd =~ /^infomon (?:reset|redo)!?/i
       ExecScript.start("Infomon.redo!", { :quiet => true })
-    elsif XMLData.game =~ /^GS/ && cmd =~ /^infomon show( full)?/i
+    elsif XMLData.game&.start_with?('GS') && cmd =~ /^infomon show( full)?/i
       case Regexp.last_match(1)
       when 'full'
         Infomon.show(true)
       else
         Infomon.show(false)
       end
-    elsif XMLData.game =~ /^GS/ && cmd =~ /^infomon effects?(?: (true|false))?/i
+    elsif XMLData.game&.start_with?('GS') && cmd =~ /^infomon effects?(?: (true|false))?/i
       new_value = !(Infomon.get_bool("infomon.show_durations"))
       case Regexp.last_match(1)
       when 'true'
@@ -2313,9 +2313,9 @@ def do_client(client_string)
       end
       respond "Changing Infomon's effect duration showing to #{new_value}"
       Infomon.set('infomon.show_durations', new_value)
-    elsif XMLData.game =~ /^GS/ && cmd =~ /^sk\b(?: (add|rm|list|help)(?: ([\d\s]+))?)?/i
+    elsif XMLData.game&.start_with?('GS') && cmd =~ /^sk\b(?: (add|rm|list|help)(?: ([\d\s]+))?)?/i
       SK.main(Regexp.last_match(1), Regexp.last_match(2))
-    elsif XMLData.game =~ /^DR/ && cmd =~ /^display flaguid(?: (true|false))?/i
+    elsif XMLData.game&.start_with?('DR') && cmd =~ /^display flaguid(?: (true|false))?/i
       new_value = !(Lich.hide_uid_flag)
       case Regexp.last_match(1)
       when 'true'
@@ -2370,10 +2370,10 @@ def do_client(client_string)
       Lich::Util::Update.request("#{update_parameter}")
     elsif cmd =~ /^(?:lich5-update|l5u)/i
       Lich::Util::Update.request("--help")
-    elsif cmd =~ /^banks$/ && XMLData.game =~ /^GS/
+    elsif cmd =~ /^banks$/ && XMLData.game&.start_with?('GS')
       Game._puts "<c>bank account"
       $_CLIENTBUFFER_.push "<c>bank account"
-    elsif cmd =~ /^magic$/ && XMLData.game =~ /^GS/
+    elsif cmd =~ /^magic$/ && XMLData.game&.start_with?('GS')
       Effects.display
     elsif cmd =~ /^help$/i
       respond
@@ -2425,14 +2425,14 @@ def do_client(client_string)
       respond "   #{$clean_lich_char}lich5-update --<command>  Lich5 ecosystem management "
       respond "                              see #{$clean_lich_char}lich5-update --help"
       respond "   #{$clean_lich_char}hmr <regex filepath>      Hot module reload a Ruby or Lich5 file without relogging, uses Regular Expression matching"
-      if XMLData.game =~ /^GS/
+      if XMLData.game&.start_with?('GS')
         respond
         respond "   #{$clean_lich_char}infomon sync              sends all the various commands to resync character data for infomon (fixskill)"
         respond "   #{$clean_lich_char}infomon reset             resets entire character infomon db table and then syncs data (fixprof)"
         respond "   #{$clean_lich_char}infomon effects           toggle display of effect durations"
         respond "   #{$clean_lich_char}infomon show              shows all current Infomon values for character"
         respond "   #{$clean_lich_char}sk help                   show information on modifying self-knowledge spells to be known"
-      elsif XMLData.game =~ /^DR/
+      elsif XMLData.game&.start_with?('DR')
         respond "   #{$clean_lich_char}display flaguid           toggle display of RealID in Room Title with FLAG ShowRoomID (required for Lich5 to be ON)"
       end
       respond "   #{$clean_lich_char}display lichid            toggle display of Lich Map# when displaying room information"
