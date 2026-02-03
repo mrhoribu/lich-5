@@ -4,6 +4,7 @@ require 'fileutils'
 require 'fiddle'
 require 'fiddle/import'
 require 'open3'
+require 'rbconfig'
 
 # Windows API modules for frontend PID detection and window focus
 # These need to be defined at the top level
@@ -33,10 +34,14 @@ end
 module Lich
   module Common
     module Frontend
+      require_relative 'frontend/warlock'
+
       @session_file = nil
       @tmp_session_dir = File.join Dir.tmpdir, "simutronics", "sessions"
       @frontend_pid = nil
       @pid_mutex = Mutex.new
+      @supports_xml = true
+      @client = ""
 
       def self.create_session_file(name, host, port, display_session: true)
         return if name.nil?
@@ -366,6 +371,36 @@ module Lich
           return defined?(::Win32Enum) && defined?(::WinAPI)
         end
         false
+      end
+
+      def self.supports_xml?
+        @supports_xml
+      end
+
+      def self.supports_xml=(value)
+        @supports_xml = value
+      end
+
+      def self.client
+        @client
+      end
+
+      def self.client=(value)
+        @client = value
+      end
+
+      def self.operating_system
+        host_os = RbConfig::CONFIG['host_os']
+        case host_os
+        when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
+          :windows
+        when /darwin|mac os/
+          :macos
+        when /linux|solaris|bsd/
+          :linux
+        else
+          raise Error::WebDriverError, "unknown os: #{host_os.inspect}"
+        end
       end
     end
   end
