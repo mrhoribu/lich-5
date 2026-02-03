@@ -86,7 +86,7 @@ module Lich
         Lich.log "Parent process PID: #{parent_pid}"
 
         # Let's see what process this actually is on Windows
-        if RUBY_PLATFORM =~ /mingw|mswin/
+        if OS.windows?
           begin
             require 'win32ole'
             wmi = WIN32OLE.connect('winmgmts://')
@@ -174,12 +174,10 @@ module Lich
       # Detect the current platform
       # @return [Symbol] :windows, :macos, :linux, or :unsupported
       def self.detect_platform
-        case RUBY_PLATFORM
-        when /mingw|mswin/ then :windows
-        when /darwin/      then :macos
-        when /linux/       then :linux
-        else                    :unsupported
-        end
+        return :windows if OS.windows?
+        return :macos if OS.mac?
+        return :linux if OS.linux?
+        return :unsupported
       end
 
       # Resolve PID by walking up process tree to find window owner
@@ -367,7 +365,7 @@ module Lich
       # Ensure Windows modules are loaded (they're defined at top level)
       def self.ensure_windows_modules
         # Check if modules exist - they should be defined at file load time
-        if RUBY_PLATFORM =~ /mingw|mswin/
+        if OS.windows?
           return defined?(::Win32Enum) && defined?(::WinAPI)
         end
         false
@@ -389,19 +387,7 @@ module Lich
         @client = value
       end
 
-      def self.operating_system
-        host_os = RbConfig::CONFIG['host_os']
-        case host_os
-        when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
-          :windows
-        when /darwin|mac os/
-          :macos
-        when /linux|solaris|bsd/
-          :linux
-        else
-          raise Error::WebDriverError, "unknown os: #{host_os.inspect}"
-        end
-      end
+      alias_method :operating_system, :detect_platform
     end
   end
 end
