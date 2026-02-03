@@ -64,7 +64,6 @@ module Lich
       end
 
       # Frontend PID tracking functionality
-
       # Get the current frontend PID
       # @return [Integer, nil] The PID if set, nil otherwise
       def self.pid
@@ -387,7 +386,10 @@ module Lich
         @client = value
       end
 
-      alias_method :operating_system, :detect_platform
+      # Alias for detect_platform
+      class << self
+        alias_method :operating_system, :detect_platform
+      end
     end
   end
 end
