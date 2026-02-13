@@ -21,6 +21,7 @@ module Lich
   module Gemstone
     module Infomon
       extend Lich::Common::Watchable
+
       $infomon_debug = ENV["DEBUG"]
       # use temp dir in ci context
       @root = defined?(DATA_DIR) ? DATA_DIR : Dir.tmpdir
@@ -212,14 +213,14 @@ module Lich
         value = self._validate!(key, value)
         return :noop if self.cache.get(key) == value
         self.cache.put(key, value)
-        self.queue << "INSERT OR REPLACE INTO %s (`key`, `value`, `updated_at`) VALUES (%s, %s, %s)
-      on conflict(`key`) do update set value = excluded.value, updated_at = excluded.updated_at;" % [self.db.literal(self.table_name), self.db.literal(key), self.db.literal(value), current_timestamp]
+        self.queue << ("INSERT OR REPLACE INTO %s (`key`, `value`, `updated_at`) VALUES (%s, %s, %s)
+      on conflict(`key`) do update set value = excluded.value, updated_at = excluded.updated_at;" % [self.db.literal(self.table_name), self.db.literal(key), self.db.literal(value), current_timestamp])
       end
 
       def self.delete!(key)
         key = self._key(key)
         self.cache.delete(key)
-        self.queue << "DELETE FROM %s WHERE key = (%s);" % [self.db.literal(self.table_name), self.db.literal(key)]
+        self.queue << ("DELETE FROM %s WHERE key = (%s);" % [self.db.literal(self.table_name), self.db.literal(key)])
       end
 
       def self.upsert_batch(*blob)
@@ -233,8 +234,8 @@ module Lich
           %[(%s, %s, %s)] % [self.db.literal(key), self.db.literal(value), now]
         }.join(", ")
         # queue sql statement to run async
-        self.queue << "INSERT OR REPLACE INTO %s (`key`, `value`, `updated_at`) VALUES %s
-      on conflict(`key`) do update set value = excluded.value, updated_at = excluded.updated_at;" % [self.db.literal(self.table_name), pairs]
+        self.queue << ("INSERT OR REPLACE INTO %s (`key`, `value`, `updated_at`) VALUES %s
+      on conflict(`key`) do update set value = excluded.value, updated_at = excluded.updated_at;" % [self.db.literal(self.table_name), pairs])
       end
 
       Thread.new do

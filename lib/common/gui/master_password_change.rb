@@ -307,13 +307,13 @@ module Lich
               # Update keychain
               unless MasterPasswordManager.store_master_password(new_password)
                 Lich.log "error: Failed to update keychain with new master password"
-                FileUtils.rm(backup_file) if File.exist?(backup_file)
+                FileUtils.rm_f(backup_file)
                 restore_from_backup(yaml_file, backup_file)
                 return false
               end
 
               # Clean up backup on success
-              FileUtils.rm(backup_file) if File.exist?(backup_file)
+              FileUtils.rm_f(backup_file)
 
               Lich.log "info: Master password changed successfully"
               true

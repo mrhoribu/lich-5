@@ -575,7 +575,7 @@ RSpec.describe Lich::Common::CLI::PasswordManager do
 
     context 'when yaml file does not exist' do
       it 'returns false' do
-        File.delete(yaml_file) if File.exist?(yaml_file)
+        FileUtils.rm_f(yaml_file)
 
         result = Lich::Common::CLI::PasswordManager.validate_master_password_available
         expect(result).to eq(false)
@@ -607,7 +607,7 @@ RSpec.describe Lich::Common::CLI::PasswordManager do
 
     context 'when yaml file does not exist' do
       it 'returns 2 when yaml file missing' do
-        File.delete(yaml_file) if File.exist?(yaml_file)
+        FileUtils.rm_f(yaml_file)
 
         exit_code = Lich::Common::CLI::PasswordManager.recover_master_password
         expect(exit_code).to eq(2)

@@ -7,8 +7,8 @@ module Lich
       end
 
       def self.msg(message)
-        return _respond message if defined?(:_respond) && message.include?("<b>")
-        return respond message if defined?(:respond)
+        return _respond message if defined?(_respond) && message.include?("<b>")
+        return respond message if defined?(respond)
         puts message
       end
 

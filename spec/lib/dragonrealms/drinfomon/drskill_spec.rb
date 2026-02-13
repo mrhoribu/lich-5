@@ -273,7 +273,7 @@ RSpec.describe Lich::DragonRealms::DRSkill do
     end
 
     it 'parses hours with colon format' do
-      expect(DRSkill.convert_rexp_str_to_seconds('4:38 hours')).to eq((4 * 60 + 38) * 60)
+      expect(DRSkill.convert_rexp_str_to_seconds('4:38 hours')).to eq(((4 * 60) + 38) * 60)
     end
 
     it 'parses hours without minutes' do
@@ -281,7 +281,7 @@ RSpec.describe Lich::DragonRealms::DRSkill do
     end
 
     it 'parses hours and minutes separately' do
-      expect(DRSkill.convert_rexp_str_to_seconds('2 hours 30 minutes')).to eq((2 * 60 + 30) * 60)
+      expect(DRSkill.convert_rexp_str_to_seconds('2 hours 30 minutes')).to eq(((2 * 60) + 30) * 60)
     end
   end
 end

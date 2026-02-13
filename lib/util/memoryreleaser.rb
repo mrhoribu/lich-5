@@ -407,12 +407,12 @@ module Lich
           respond "\nReleasing memory..."
           release
 
-          respond "\n" + "=" * 60
+          respond "\n" + ("=" * 60)
           respond "Memory Usage After Release:"
           respond "=" * 60
           after = print_memory_stats
 
-          respond "\n" + "=" * 60
+          respond "\n" + ("=" * 60)
           respond "Change:"
           respond "=" * 60
           print_memory_diff(before, after)

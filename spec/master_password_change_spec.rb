@@ -25,7 +25,7 @@ RSpec.describe Lich::Common::GUI::MasterPasswordChange do
   end
 
   after do
-    FileUtils.rm_rf(data_dir) if File.exist?(data_dir)
+    FileUtils.rm_rf(data_dir)
   end
 
   describe '.show_change_master_password_dialog' do

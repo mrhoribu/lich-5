@@ -37,6 +37,7 @@ module Lich
         # @api private
         module WinFFI
           extend FFI::Library
+
           ffi_lib 'Ws2_32', 'msvcrt'
 
           # WSAIoctl command code for setting TCP keep-alive parameters

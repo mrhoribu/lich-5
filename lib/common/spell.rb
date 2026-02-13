@@ -637,7 +637,7 @@ module Lich
               end
             end
 
-            if (((target.nil? || target.to_s.empty?) && !(@no_incant)) && (cast_cmd == "cast" && arg_options.nil?) || cast_cmd == "incant") && cast_cmd !~ /^(?:channel|evoke)/
+            if ((((target.nil? || target.to_s.empty?) && !(@no_incant)) && (cast_cmd == "cast" && arg_options.nil?)) || cast_cmd == "incant") && cast_cmd !~ /^(?:channel|evoke)/
               cast_cmd = "incant #{@num}"
             elsif (target.nil? or target.to_s.empty?) and (@type =~ /attack/i) and not [410, 435, 525, 912, 909, 609].include?(@num)
               cast_cmd += ' target'
@@ -846,7 +846,7 @@ module Lich
             end
           end
         else
-          respond 'missing method: ' + args.inspect.to_s
+          respond 'missing method: ' + args.inspect
           raise NoMethodError
         end
       end

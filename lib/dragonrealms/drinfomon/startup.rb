@@ -6,6 +6,7 @@ module Lich
   module DragonRealms
     module DRInfomon
       extend Lich::Common::Watchable
+
       # Populates initial game state after login by issuing
       # game commands whose output is parsed by DRParser.
       #

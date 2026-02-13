@@ -598,7 +598,7 @@ module Lich
         # copy hosts to hosts.bak
         File.open("#{Lich.hosts_file}.bak", 'w') { |hb| File.open(Lich.hosts_file) { |h| hb.write(h.read) } }
       rescue
-        File.unlink("#{Lich.hosts_file}.bak") if File.exist?("#{Lich.hosts_file}.bak")
+        FileUtils.rm_f("#{Lich.hosts_file}.bak")
         return false
       end
       File.open(Lich.hosts_file, 'a') { |f| f.write "\r\n127.0.0.1\t\t#{game_host}" }

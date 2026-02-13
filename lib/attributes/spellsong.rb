@@ -46,9 +46,9 @@ module Lich
         when (0..25)
           total += level * 4
         when (26..50)
-          total += 100 + (level - 25) * 3
+          total += 100 + ((level - 25) * 3)
         when (51..75)
-          total += 175 + (level - 50) * 2
+          total += 175 + ((level - 50) * 2)
         when (76..100)
           total += 225 + (level - 75)
         else
@@ -159,7 +159,7 @@ module Lich
       end
 
       def self.luckcost
-        [6 + ((Spells.bard - 6) / 4), (6 + ((Spells.bard - 6) / 4) / 2).round]
+        [6 + ((Spells.bard - 6) / 4), (6 + (((Spells.bard - 6) / 4) / 2)).round]
       end
 
       def self.manacost

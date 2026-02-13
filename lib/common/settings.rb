@@ -294,9 +294,9 @@ module Lich
           end
         rescue => e
           _log(LOG_LEVEL_ERROR, @@log_prefix, -> {
-            "save_proxy_changes: Local navigation raised #{e.class}: #{e.message}. "\
-            "scope=#{scope.inspect}, script_name=#{script_name.inspect}, cache_key=#{cache_key}, "\
-            "parent_path=#{parent_path.inspect}, leaf_key=#{leaf_key.inspect}"
+            "save_proxy_changes: Local navigation raised #{e.class}: #{e.message}. " \
+              "scope=#{scope.inspect}, script_name=#{script_name.inspect}, cache_key=#{cache_key}, " \
+              "parent_path=#{parent_path.inspect}, leaf_key=#{leaf_key.inspect}"
           })
           bt = (e.backtrace || [])[0, 5]
           _log(LOG_LEVEL_ERROR, @@log_prefix, -> { "save_proxy_changes: Backtrace (top 5): #{bt.join(' | ')}" })
@@ -321,8 +321,8 @@ module Lich
           _log(LOG_LEVEL_DEBUG, @@log_prefix, -> { "save_proxy_changes: Set Array index #{leaf_key} with proxy.target (object_id: #{proxy.target.object_id})" })
         else
           _log(LOG_LEVEL_ERROR, @@log_prefix, -> {
-            "save_proxy_changes: Cannot set value at path #{path.inspect} in scope #{scope.inspect}; "\
-            "parent_class=#{parent.class}, leaf_key_class=#{leaf_key.class}"
+            "save_proxy_changes: Cannot set value at path #{path.inspect} in scope #{scope.inspect}; " \
+              "parent_class=#{parent.class}, leaf_key_class=#{leaf_key.class}"
           })
           return nil
         end

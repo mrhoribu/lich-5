@@ -343,7 +343,7 @@ def dec2bin(n)
 end
 
 def bin2dec(n)
-  [("0" * 32 + n.to_s)[-32..-1]].pack("B32").unpack("N")[0]
+  [(("0" * 32) + n.to_s)[-32..-1]].pack("B32").unpack("N")[0]
 end
 
 def idle?(time = 60)
@@ -354,7 +354,7 @@ def selectput(string, success, failure, timeout = nil)
   timeout = timeout.to_f if timeout and !timeout.kind_of?(Numeric)
   success = [success] if success.kind_of? String
   failure = [failure] if failure.kind_of? String
-  if !string.kind_of?(String) or !success.kind_of?(Array) or !failure.kind_of?(Array) or timeout && !timeout.kind_of?(Numeric)
+  if !string.kind_of?(String) or !success.kind_of?(Array) or !failure.kind_of?(Array) or (timeout && !timeout.kind_of?(Numeric))
     raise ArgumentError, "usage is: selectput(game_command,success_array,failure_array[,timeout_in_secs])"
   end
 
@@ -556,7 +556,7 @@ def move(dir = 'none', giveup_seconds = 10, giveup_lines = 30)
       Script.current.downstream_buffer.unshift(save_stream)
       Script.current.downstream_buffer.flatten!
       return false
-    elsif line =~ /^[A-z\s-] is unable to follow you\.$|^An unseen force prevents you\.$|^Sorry, you aren't allowed to enter here\.|^That looks like someplace only performers should go\.|^As you climb, your grip gives way and you fall down|^The clerk stops you from entering the partition and says, "I'll need to see your ticket!"$|^The guard stops you, saying, "Only members of registered groups may enter the Meeting Hall\.  If you'd like to visit, ask a group officer for a guest pass\."$|^An? .*? reaches over and grasps [A-Z][a-z]+ by the neck preventing (?:him|her) from being dragged anywhere\.$|^You'll have to wait, [A-Z][a-z]+ .* locker|^As you move toward the gate, you carelessly bump into the guard|^You attempt to enter the back of the shop, but a clerk stops you.  "Your reputation precedes you!|you notice that thick beams are placed across the entry with a small sign that reads, "Abandoned\."$|appears to be closed, perhaps you should try again later\?$/
+    elsif line =~ /^[A-Za-z\s-] is unable to follow you\.$|^An unseen force prevents you\.$|^Sorry, you aren't allowed to enter here\.|^That looks like someplace only performers should go\.|^As you climb, your grip gives way and you fall down|^The clerk stops you from entering the partition and says, "I'll need to see your ticket!"$|^The guard stops you, saying, "Only members of registered groups may enter the Meeting Hall\.  If you'd like to visit, ask a group officer for a guest pass\."$|^An? .*? reaches over and grasps [A-Z][a-z]+ by the neck preventing (?:him|her) from being dragged anywhere\.$|^You'll have to wait, [A-Z][a-z]+ .* locker|^As you move toward the gate, you carelessly bump into the guard|^You attempt to enter the back of the shop, but a clerk stops you.  "Your reputation precedes you!|you notice that thick beams are placed across the entry with a small sign that reads, "Abandoned\."$|appears to be closed, perhaps you should try again later\?$/
       echo 'move: failed'
       fill_hands if need_full_hands
       Script.current.downstream_buffer.unshift(save_stream)

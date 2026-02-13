@@ -25,7 +25,7 @@ RSpec.describe Lich::Common::GUI::YamlState do
   let(:yaml_file) { File.join(data_dir, 'entry.yaml') }
   let(:dat_file) { File.join(data_dir, 'entry.dat') }
 
-  after { FileUtils.remove_entry(temp_dir) if Dir.exist?(temp_dir) }
+  after { FileUtils.rm_rf(temp_dir) }
 
   describe '.migrate_from_legacy with enhanced mode' do
     before do

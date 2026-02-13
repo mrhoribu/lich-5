@@ -57,8 +57,8 @@ module Lich
     ]
 
     DR_SKILLS_DATA = {
-      "skillsets": {
-        "Armor": [
+      skillsets: {
+        Armor: [
           "Shield Usage",
           "Light Armor",
           "Chain Armor",
@@ -67,7 +67,7 @@ module Lich
           "Defending",
           "Conviction"
         ],
-        "Lore": [
+        Lore: [
           "Alchemy",
           "Appraisal",
           "Enchanting",
@@ -82,7 +82,7 @@ module Lich
           "Trading",
           "Mechanical Lore"
         ],
-        "Weapon": [
+        Weapon: [
           "Parry Ability",
           "Small Edged",
           "Large Edged",
@@ -103,7 +103,7 @@ module Lich
           "Missile Mastery",
           "Expertise"
         ],
-        "Magic": [
+        Magic: [
           "Primary Magic",
           "Arcana",
           "Attunement",
@@ -124,7 +124,7 @@ module Lich
           "Life Magic",
           "Arcane Magic"
         ],
-        "Survival": [
+        Survival: [
           "Evasion",
           "Athletics",
           "Perception",
@@ -139,7 +139,7 @@ module Lich
           "Thanatology"
         ]
       },
-      "guild_skill_aliases": {
+      guild_skill_aliases: {
         "Cleric"       => { "Primary Magic" => "Holy Magic" },
         "Necromancer"  => { "Primary Magic" => "Arcane Magic" },
         "Warrior Mage" => { "Primary Magic" => "Elemental Magic" },

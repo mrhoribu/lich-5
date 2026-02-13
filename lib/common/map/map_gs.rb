@@ -716,7 +716,7 @@ module Lich
                     else
                       element = %r{^<([^\s>/]+)}.match(str).captures.first
                       attributes = {}
-                      str.scan(/([A-z][A-z0-9_-]*)=(["'])(.*?)\2/).each do |attr|
+                      str.scan(/([A-Za-z][A-Za-z0-9_-]*)=(["'])(.*?)\2/).each do |attr|
                         attributes[attr[0]] = attr[2].gsub(/&(#{unescape.keys.join('|')});/) { unescape[::Regexp.last_match(1)] }
                       end
                       tag_start.call(element, attributes)

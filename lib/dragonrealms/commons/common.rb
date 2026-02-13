@@ -836,7 +836,7 @@ module Lich
                 70
               end
 
-        points = 80 + DRSkill.getrank('Defending') / div
+        points = 80 + (DRSkill.getrank('Defending') / div)
         secondary = points > 100 ? 100 : points
         tertiary = points > 100 ? points - 100 : 0
 

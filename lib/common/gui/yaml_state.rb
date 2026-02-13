@@ -443,7 +443,7 @@ module Lich
             write_yaml_file(yaml_file, yaml_data)
 
             # Clean up backup on success
-            FileUtils.rm(backup_file) if File.exist?(backup_file)
+            FileUtils.rm_f(backup_file)
 
             Lich.log "info: Encryption mode changed successfully: #{current_mode} → #{new_mode}"
             true

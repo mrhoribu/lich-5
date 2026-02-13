@@ -145,7 +145,7 @@ end
 RSpec.describe Lich::Common::GUI::ConversionUI do
   let(:test_data_dir) { Dir.mktmpdir }
 
-  after { FileUtils.remove_entry(test_data_dir) if Dir.exist?(test_data_dir) }
+  after { FileUtils.rm_rf(test_data_dir) }
 
   describe '.conversion_needed?' do
     context 'when entry.dat exists but entry.yaml does not' do

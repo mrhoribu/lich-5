@@ -163,6 +163,7 @@ if (RUBY_PLATFORM =~ /mingw|win/i) and (RUBY_PLATFORM !~ /darwin/i)
 
     module Kernel32
       extend Fiddle::Importer
+
       dlload 'kernel32'
       extern 'int GetCurrentProcess()'
       extern 'int GetExitCodeProcess(int, int*)'
@@ -243,6 +244,7 @@ if (RUBY_PLATFORM =~ /mingw|win/i) and (RUBY_PLATFORM !~ /darwin/i)
 
     module User32
       extend Fiddle::Importer
+
       dlload 'user32'
       extern 'int MessageBox(int, char*, char*, int)'
     end
@@ -254,6 +256,7 @@ if (RUBY_PLATFORM =~ /mingw|win/i) and (RUBY_PLATFORM !~ /darwin/i)
 
     module Advapi32
       extend Fiddle::Importer
+
       dlload 'advapi32'
       extern 'int GetTokenInformation(int, int, void*, int, void*)'
       extern 'int OpenProcessToken(int, int, void*)'
@@ -362,6 +365,7 @@ if (RUBY_PLATFORM =~ /mingw|win/i) and (RUBY_PLATFORM !~ /darwin/i)
 
     module Shell32
       extend Fiddle::Importer
+
       dlload 'shell32'
       extern 'int ShellExecuteEx(void*)'
       extern 'int ShellExecute(int, char*, char*, char*, char*, int)'
@@ -412,6 +416,7 @@ if (RUBY_PLATFORM =~ /mingw|win/i) and (RUBY_PLATFORM !~ /darwin/i)
     rescue
       module Psapi
         extend Fiddle::Importer
+
         dlload 'psapi'
         extern 'int EnumProcesses(void*, int, void*)'
       end
@@ -517,12 +522,12 @@ rescue LoadError
   exit
 end
 
-unless (ARGV.grep(/^--no-(?:gtk|gui)$/).any? || RUBY_PLATFORM !~ /mingw/ && (ENV['DISPLAY'].nil? && !ARGV.include?('--gtk')))
+unless (ARGV.grep(/^--no-(?:gtk|gui)$/).any? || (RUBY_PLATFORM !~ /mingw/ && (ENV['DISPLAY'].nil? && !ARGV.include?('--gtk'))))
   begin
     require 'gtk3'
     HAVE_GTK = true
   rescue LoadError
-    if (ENV['RUN_BY_CRON'].nil? or ENV['RUN_BY_CRON'] == 'false') and ARGV.empty? or ARGV.any? { |any_arg| any_arg =~ /^--gui$/ } or not $stdout.isatty
+    if ((ENV['RUN_BY_CRON'].nil? or ENV['RUN_BY_CRON'] == 'false') and ARGV.empty?) or ARGV.any? { |any_arg| any_arg =~ /^--gui$/ } or not $stdout.isatty
       if defined?(Win32)
         r = Win32.MessageBox(:lpText => "Lich uses gtk3 to create windows, but it is not installed.  You can use Lich from the command line (ruby lich.rbw --help) or you can install gtk3 for a point and click interface.\n\nWould you like to install gtk3 now?", :lpCaption => "Lich v#{LICH_VERSION}", :uType => (Win32::MB_YESNO | Win32::MB_ICONQUESTION))
         if r == Win32::IDIYES
@@ -593,7 +598,7 @@ unless File.exist?(LICH_DIR)
     message = "An error occured while attempting to create directory #{LICH_DIR}\n\n"
     if not File.exist?(LICH_DIR.sub(/[\\\/]$/, '').slice(/^.+[\\\/]/).chop)
       message.concat "This was likely because the parent directory (#{LICH_DIR.sub(/[\\\/]$/, '').slice(/^.+[\\\/]/).chop}) doesn't exist."
-    elsif defined?(Win32) and (Win32.GetVersionEx[:dwMajorVersion] >= 6) and (dir !~ /^[A-z]\:\\(Users|Documents and Settings)/)
+    elsif defined?(Win32) and (Win32.GetVersionEx[:dwMajorVersion] >= 6) and (dir !~ /^[A-Za-z]\:\\(Users|Documents and Settings)/)
       message.concat "This was likely because Lich doesn't have permission to create files and folders here.  It is recommended to put Lich in your Documents folder."
     else
       message.concat $!
@@ -612,7 +617,7 @@ unless File.exist?(TEMP_DIR)
     message = "An error occured while attempting to create directory #{TEMP_DIR}\n\n"
     if not File.exist?(TEMP_DIR.sub(/[\\\/]$/, '').slice(/^.+[\\\/]/).chop)
       message.concat "This was likely because the parent directory (#{TEMP_DIR.sub(/[\\\/]$/, '').slice(/^.+[\\\/]/).chop}) doesn't exist."
-    elsif defined?(Win32) and (Win32.GetVersionEx[:dwMajorVersion] >= 6) and (dir !~ /^[A-z]\:\\(Users|Documents and Settings)/)
+    elsif defined?(Win32) and (Win32.GetVersionEx[:dwMajorVersion] >= 6) and (dir !~ /^[A-Za-z]\:\\(Users|Documents and Settings)/)
       message.concat "This was likely because Lich doesn't have permission to create files and folders here.  It is recommended to put Lich in your Documents folder."
     else
       message.concat $!
@@ -627,7 +632,7 @@ begin
   $stderr = File.open(debug_filename, 'w')
 rescue
   message = "An error occured while attempting to create file #{debug_filename}\n\n"
-  if defined?(Win32) and (TEMP_DIR !~ /^[A-z]\:\\(Users|Documents and Settings)/) and not Win32.isXP?
+  if defined?(Win32) and (TEMP_DIR !~ /^[A-Za-z]\:\\(Users|Documents and Settings)/) and not Win32.isXP?
     message.concat "This was likely because Lich doesn't have permission to create files and folders here.  It is recommended to put Lich in your Documents folder."
   else
     message.concat $!

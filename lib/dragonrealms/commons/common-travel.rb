@@ -355,7 +355,7 @@ module Lich
         }
         reverse_path = []
         path = path.reverse
-        for i in 0..path.length - 1
+        for i in 0..(path.length - 1)
           if dir_to_prev_dir[path[i]].nil?
             DRC.message("Error: No reverse direction found for #{path[i]}.  Please use the full direction, northeast instead of ne, check your spelling, and make sure the path parameter is an array.")
             exit

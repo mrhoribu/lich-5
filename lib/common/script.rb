@@ -231,7 +231,7 @@ module Lich
             nil
           else
             begin
-              Dir.mkdir("#{LICH_DIR}/logs") unless File.exist?("#{LICH_DIR}/logs")
+              FileUtils.mkdir_p("#{LICH_DIR}/logs")
               File.open("#{LICH_DIR}/logs/#{script.name}.log", 'a') { |f| f.puts data }
               true
             rescue

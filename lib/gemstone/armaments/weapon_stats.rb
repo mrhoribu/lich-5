@@ -300,7 +300,7 @@ module Lich
                           Armaments::ASG_INDEX_TO_NAME.values
 
           indent = 2
-          max_label_width = (top_labels + nested_labels.map { |s| " " * indent + s })
+          max_label_width = (top_labels + nested_labels.map { |s| (" " * indent) + s })
                             .map(&:length).max
 
           # Print top-level fields
@@ -308,37 +308,37 @@ module Lich
             next unless weapon.key?(key)
             val = weapon[key]
             str_val = val.is_a?(Array) ? val.join(", ") : val.to_s
-            lines << "%-#{max_label_width}s : %s" % [key.to_s, str_val]
+            lines << ("%-#{max_label_width}s : %s" % [key.to_s, str_val])
           end
 
           # Damage Types
           if weapon[:damage_types].is_a?(Hash)
-            lines << "%-#{max_label_width}s :" % "damage_types"
+            lines << ("%-#{max_label_width}s :" % "damage_types")
             sub_indent = 2
             sub_label_width = max_label_width - sub_indent
             weapon[:damage_types].each do |type, value|
               val_str = (type == :special) ? (value.empty? ? "(none)" : value.join(", ")) : value.to_s
-              lines << "%s%-#{sub_label_width}s : %s" % [" " * sub_indent, type.to_s, val_str]
+              lines << ("%s%-#{sub_label_width}s : %s" % [" " * sub_indent, type.to_s, val_str])
             end
           end
 
           # Damage Factor
           if weapon[:damage_factor].is_a?(Array)
-            lines << "%-#{max_label_width}s :" % "damage_factor"
+            lines << ("%-#{max_label_width}s :" % "damage_factor")
             weapon[:damage_factor][1..].each_with_index do |df, i|
               ag_index = i + 1
               label = Armaments::AG_INDEX_TO_NAME[ag_index] || "AG #{ag_index}"
-              lines << "  %-#{max_label_width - indent}s : %s" % [label, df]
+              lines << ("  %-#{max_label_width - indent}s : %s" % [label, df])
             end
           end
 
           # AvD by ASG
           if weapon[:avd_by_asg].is_a?(Array)
-            lines << "%-#{max_label_width}s :" % "avd_by_asg"
+            lines << ("%-#{max_label_width}s :" % "avd_by_asg")
             weapon[:avd_by_asg][1..].each_with_index do |avd, i|
               next unless avd
               label = Armaments::ASG_INDEX_TO_NAME[i + 1] || "ASG #{i + 1}"
-              lines << "  %-#{max_label_width - indent}s : %s" % [label, avd]
+              lines << ("  %-#{max_label_width - indent}s : %s" % [label, avd])
             end
           end
 
@@ -361,7 +361,7 @@ module Lich
             next unless weapon.key?(key)
             val = weapon[key]
             str_val = val.is_a?(Array) ? val.join(", ") : val.to_s
-            lines << "%-18s: %s" % [key.to_s, str_val]
+            lines << ("%-18s: %s" % [key.to_s, str_val])
           end
 
           # damage types inline (always show, hash style)
@@ -373,14 +373,14 @@ module Lich
                 "#{type}=#{val}"
               end
             end.join(", ")
-            lines << "%-18s: %s" % ["damage_types", damage_str]
+            lines << ("%-18s: %s" % ["damage_types", damage_str])
           end
 
           # damage_factor inline
           if weapon[:damage_factor].is_a?(Array)
             df = weapon[:damage_factor][1..] || []
             df_str = df.each_with_index.map { |v, i| "AG%-2d=%0.3f" % [i + 1, v] }.join("  ")
-            lines << "%-18s: %s" % ["damage_factor", df_str]
+            lines << ("%-18s: %s" % ["damage_factor", df_str])
           end
 
           # AVD in aligned two-line block
@@ -391,8 +391,8 @@ module Lich
             header = avds.each_index.map { |i| i + 1 }.map { |asg| asg.to_s.rjust(col_width) }.join
             values = avds.map { |v| v.nil? ? '--'.rjust(col_width) : v.to_s.rjust(col_width) }.join
 
-            lines << "%-18s: %s" % ["avd_by_asg", header]
-            lines << " " * 20 + values
+            lines << ("%-18s: %s" % ["avd_by_asg", header])
+            lines << ((" " * 20) + values)
           end
 
           lines << "" # trailing blank

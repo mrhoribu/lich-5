@@ -621,12 +621,11 @@ module Lich
             if @game.nil? or @game.empty?
               @game = 'unknown'
             end
-            unless File.exist?("#{DATA_DIR}/#{@game}")
-              Dir.mkdir("#{DATA_DIR}/#{@game}")
-            end
-            unless File.exist?("#{DATA_DIR}/#{@game}/#{@name}")
-              Dir.mkdir("#{DATA_DIR}/#{@game}/#{@name}")
-            end
+
+            FileUtils.mkdir_p("#{DATA_DIR}/#{@game}")
+
+            FileUtils.mkdir_p("#{DATA_DIR}/#{@game}/#{@name}")
+
             if Frontend.supports_gsl?
               Game._puts "#{$cmd_prefix}_flag Display Dialog Boxes 0"
               sleep 0.05

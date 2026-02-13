@@ -335,10 +335,10 @@ module Lich
               )
 
               dialog.secondary_text = "You are about to disable encryption.\n\n" \
-                                     "Plaintext mode stores passwords unencrypted.\n" \
-                                     "Anyone with access to your file system can read your passwords.\n\n" \
-                                     "This mode is provided for accessibility purposes.\n\n" \
-                                     "Continue with Plaintext mode?"
+                                      "Plaintext mode stores passwords unencrypted.\n" \
+                                      "Anyone with access to your file system can read your passwords.\n\n" \
+                                      "This mode is provided for accessibility purposes.\n\n" \
+                                      "Continue with Plaintext mode?"
 
               dialog.add_button("Yes, Disable Encryption", Gtk::ResponseType::YES)
               dialog.add_button("Cancel", Gtk::ResponseType::CANCEL)

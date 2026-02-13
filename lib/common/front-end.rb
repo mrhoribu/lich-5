@@ -11,6 +11,7 @@ if RUBY_PLATFORM =~ /mingw|mswin/
   unless defined?(::Win32Enum)
     module ::Win32Enum
       extend Fiddle::Importer
+
       dlload 'user32.dll'
       extern 'int EnumWindows(void*, long)'
       extern 'int IsWindowVisible(void*)'
@@ -21,6 +22,7 @@ if RUBY_PLATFORM =~ /mingw|mswin/
   unless defined?(::WinAPI)
     module ::WinAPI
       extend Fiddle::Importer
+
       dlload 'user32.dll'
       extern 'int EnumWindows(void*, long)'
       extern 'int GetWindowThreadProcessId(void*, void*)'
@@ -108,7 +110,7 @@ module Lich
 
       def self.cleanup_session_file
         return if @session_file.nil?
-        File.delete(@session_file) if File.exist? @session_file
+        FileUtils.rm_f(@session_file)
       end
 
       # Frontend PID tracking functionality

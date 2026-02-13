@@ -4,6 +4,7 @@ module Lich
   module Gemstone
     module ActiveSpell
       extend Lich::Common::Watchable
+
       #
       # Spell timing true-up (Invoker and SK item spells do not have proper durations)
       # this needs to be addressed in class Spell rewrite
@@ -106,7 +107,7 @@ module Lich
             end
             time_left = ((end_time - Time.now) / 60).to_f
             duration = ((end_time - (@current_durations[effect_key].nil? ? Time.now : @current_durations[effect_key])) / 60).to_f
-            if @durations_first_pass_complete && (@current_durations[effect_key].nil? || end_time > @current_durations[effect_key]) && duration > (0.1).to_f && !(group_effects.include?(spell.num) && !spell.known?)
+            if @durations_first_pass_complete && (@current_durations[effect_key].nil? || end_time > @current_durations[effect_key]) && duration > (0.1) && !(group_effects.include?(spell.num) && !spell.known?)
               respond "[ #{spell.num} #{spell.name}: +#{duration.as_time}, #{time_left.as_time} ]"
             end
             @current_durations[effect_key] = end_time

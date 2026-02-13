@@ -547,8 +547,8 @@ module Lich
           format_cell = ->(str) { "%#{col_width}s" % str }
 
           # Build rows
-          label_row     = ' ' * label_pad + labels.map(&format_cell).join
-          underline_row = ' ' * label_pad + labels.map { format_cell.call('---') }.join
+          label_row     = (' ' * label_pad) + labels.map(&format_cell).join
+          underline_row = (' ' * label_pad) + labels.map { format_cell.call('---') }.join
           hind_row      = 'Hindrances:'.ljust(label_pad) + armor[:hindrances].map { |v| v.nil? ? '-' : v }.map(&format_cell).join
           train_row     = 'Training Reqs:'.ljust(label_pad) + armor[:training_reqs].map { |v| v.nil? ? '-' : v }.map(&format_cell).join
 
@@ -591,17 +591,17 @@ module Lich
           }
 
           fields.each do |label, value|
-            lines << "%#{max_field_label_len}s: %s" % [label, value]
+            lines << ("%#{max_field_label_len}s: %s" % [label, value])
           end
 
           # CvA values
-          lines << "%#{max_field_label_len}s:    Normal: %s" % ["Cast vs Armor", armor[:normal_cva]]
-          lines << "%#{max_field_label_len}s     Magical: %s" % ["", armor[:magical_cva]]
+          lines << ("%#{max_field_label_len}s:    Normal: %s" % ["Cast vs Armor", armor[:normal_cva]])
+          lines << ("%#{max_field_label_len}s     Magical: %s" % ["", armor[:magical_cva]])
 
           # Headers
-          lines << " " * training_label_indent + "Training"
-          lines << " " * (max_field_label_len + 3) + "%-#{col_width}s  %-#{col_width}s" % ["Hindrance", "Requirements"]
-          lines << " " * (max_field_label_len + 3) + "%-#{col_width}s  %-#{col_width}s" % ["-" * col_width, "-" * col_width]
+          lines << ((" " * training_label_indent) + "Training")
+          lines << ((" " * (max_field_label_len + 3)) + ("%-#{col_width}s  %-#{col_width}s" % ["Hindrance", "Requirements"]))
+          lines << ((" " * (max_field_label_len + 3)) + ("%-#{col_width}s  %-#{col_width}s" % ["-" * col_width, "-" * col_width]))
 
           # Values
           Armaments::SPELL_CIRCLE_INDEX_TO_NAME.each do |i, meta|
@@ -612,7 +612,7 @@ module Lich
             hindrance_str = hindrance.nil? ? "-" : hindrance.to_s
             training_str  = training.nil? ? "-" : training.to_s
 
-            lines << "%#{max_field_label_len}s: %#{col_width}s  %#{col_width}s" % [label, hindrance_str, training_str]
+            lines << ("%#{max_field_label_len}s: %#{col_width}s  %#{col_width}s" % [label, hindrance_str, training_str])
           end
 
           lines.join("\n")

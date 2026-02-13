@@ -374,7 +374,7 @@ module Lich
                 respond
                 # clean up downloaded files
                 FileUtils.remove_dir(File.join(TEMP_DIR, filename)) if File.directory?(File.join(TEMP_DIR, filename))
-                FileUtils.rm(File.join(TEMP_DIR, "#{filename}.tar.gz")) if File.exist?(File.join(TEMP_DIR, "#{filename}.tar.gz"))
+                FileUtils.rm_f(File.join(TEMP_DIR, "#{filename}.tar.gz"))
                 return
               end
             end
@@ -415,7 +415,7 @@ module Lich
         ## that can be reinstalled with the lich5-update --update command
 
         respond; respond 'Reverting Lich5 to previously installed version.'
-        revert_array = Dir.glob(File.join(BACKUP_DIR, "*")).sort.reverse
+        revert_array = Dir.glob(File.join(BACKUP_DIR, "*")).reverse
         restore_snapshot = revert_array[0]
         if restore_snapshot.empty? or /L5-snapshot/ !~ restore_snapshot
           respond "No prior Lich5 version found. Seek assistance."
@@ -426,7 +426,7 @@ module Lich
           FileUtils.cp_r(File.join(restore_snapshot, "lib", "."), LIB_DIR)
           # delete array of core scripts
           @snapshot_core_script.each { |file|
-            File.delete(File.join(SCRIPT_DIR, file)) if File.exist?(File.join(SCRIPT_DIR, file))
+            FileUtils.rm_f(File.join(SCRIPT_DIR, file))
           }
           # copy all backed up core scripts (array to save, only array files in backup)
           FileUtils.cp_r(File.join(restore_snapshot, "scripts", "."), SCRIPT_DIR)
@@ -508,7 +508,7 @@ module Lich
             File.rename(tmp_file_path, file_path)
 
             # Clean up .old file if everything succeeded
-            File.delete(old_file_path) if File.exist?(old_file_path)
+            FileUtils.rm_f(old_file_path)
 
             respond
             respond "#{requested_file} has been updated."

@@ -161,11 +161,11 @@ module Lich
           max_label = fields.keys.map(&:length).max
 
           fields.each do |label, value|
-            lines << "%-#{max_label}s: %s" % [label, value]
+            lines << ("%-#{max_label}s: %s" % [label, value])
           end
 
           if shield[:all_names]&.any?
-            lines << "%-#{max_label}s: %s" % ["Alternate", shield[:all_names].join(", ")]
+            lines << ("%-#{max_label}s: %s" % ["Alternate", shield[:all_names].join(", ")])
           end
 
           lines << ""

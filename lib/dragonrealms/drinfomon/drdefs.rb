@@ -95,7 +95,7 @@ module Lich
 
     def extract_final_name(text)
       # Extract just the creature name (letters, hyphens, apostrophes)
-      text.strip.scan(/[A-z'-]+$/).first
+      text.strip.scan(/[A-Za-z'-]+$/).first
     end
 
     def add_ordinals_to_duplicates(npc_list)

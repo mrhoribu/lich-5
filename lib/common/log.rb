@@ -75,7 +75,7 @@ module Lich
       end
 
       def self._write(line)
-        if Script.current.vars.include?("--headless") or not defined?(:_respond)
+        if Script.current.vars.include?("--headless") or not defined?(_respond)
           $stdout.write(line + "\n")
         elsif line.include?("<") and line.include?(">")
           respond(line)

@@ -65,7 +65,7 @@ module Lich
         def self.print_conversion_help_message
           lich_script = File.join(LICH_DIR, 'lich.rbw')
 
-          $stdout.puts "\n" + '=' * 80
+          $stdout.puts "\n" + ('=' * 80)
           $stdout.puts "Saved entries conversion required"
           $stdout.puts '=' * 80
           $stdout.puts "\nYour login entries need to be converted to the new format."
@@ -80,7 +80,7 @@ module Lich
           $stdout.puts "For master-password encryption (recommended):"
           $stdout.puts "  ruby #{lich_script} --convert-entries enhanced\n\n"
 
-          $stdout.puts '=' * 80 + "\n"
+          $stdout.puts ('=' * 80) + "\n"
         end
       end
     end

@@ -1,4 +1,5 @@
 AllCops:
+  SuggestExtensions: false
   TargetRubyVersion: 4.0
   NewCops: enable
   Include:
@@ -24,6 +25,9 @@ Layout/HeredocIndentation:
   Enabled: false
 
 Layout/LineLength:
+  Enabled: false
+
+Lint/DuplicateBranch:
   Enabled: false
 
 Lint/MissingSuper:
