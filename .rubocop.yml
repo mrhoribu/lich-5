@@ -33,6 +33,9 @@ Lint/DuplicateBranch:
 Lint/MissingSuper:
   AllowedParentClasses: [Object, BaseObject, GameBase::Game]
 
+Lint/OrAssignmentToConstant:
+  Enabled: false
+
 Metrics/AbcSize:
   Enabled: false
 
