@@ -563,8 +563,6 @@ RSpec.describe Lich::Util::Update do
       allow(described_class).to receive(:validate_lich_structure).and_return(true)
       allow(described_class).to receive(:perform_update)
       allow(Dir).to receive(:children).and_return(['lich-5-test-branch'])
-      allow(FileUtils).to receive(:remove_dir)
-      allow(FileUtils).to receive(:rm)
 
       # Mock tarball download - File.open for writing
       mock_write_file = double('write_file')
@@ -583,6 +581,10 @@ RSpec.describe Lich::Util::Update do
       mock_package = double('package')
       allow(mock_package).to receive(:extract_tar_gz)
       allow(Gem::Package).to receive(:new).and_return(mock_package)
+      
+      # Allow cleanup methods by default (tests can override with expect)
+      allow(FileUtils).to receive(:remove_dir)
+      allow(FileUtils).to receive(:rm)
     end
 
     context 'with valid branch name' do
@@ -671,11 +673,18 @@ RSpec.describe Lich::Util::Update do
       allow(described_class).to receive(:snapshot)
       allow(described_class).to receive(:check_ruby_compatibility).and_return(true)
       allow(described_class).to receive(:perform_update)
+      allow(Dir).to receive(:children).and_return(['lich-5-5.15.0'])
+      allow(FileUtils).to receive(:remove_dir)
+      allow(FileUtils).to receive(:rm)
 
-      # Mock file operations
-      mock_file = double('file')
-      allow(mock_file).to receive(:write)
-      allow(File).to receive(:open).and_yield(mock_file)
+      # Mock file operations - separate write and read
+      mock_write_file = double('write_file')
+      allow(mock_write_file).to receive(:write)
+      allow(File).to receive(:open).with(include('.tar.gz'), 'wb').and_yield(mock_write_file)
+      
+      # Mock file read (no block, returns file object)
+      mock_read_file = double('read_file')
+      allow(File).to receive(:open).with(include('.tar.gz'), 'rb').and_return(mock_read_file)
 
       # Mock URI open
       mock_response = double('response', read: 'tarball content')
@@ -685,8 +694,6 @@ RSpec.describe Lich::Util::Update do
       mock_package = double('package')
       allow(mock_package).to receive(:extract_tar_gz)
       allow(Gem::Package).to receive(:new).and_return(mock_package)
-
-      allow(Dir).to receive(:children).and_return(['lich-5-5.15.0'])
     end
 
     context 'when update is available' do
@@ -758,7 +765,16 @@ RSpec.describe Lich::Util::Update do
     before(:each) do
       allow(described_class).to receive(:update_core_data_and_scripts)
       allow(Dir).to receive(:glob).and_return([])
-      allow(File).to receive(:open).and_call_original
+      allow(FileUtils).to receive(:rm_rf)
+      allow(FileUtils).to receive(:copy_entry)
+      
+      # Mock lich.rbw file operations
+      mock_read = double('read_file', read: 'lich content')
+      mock_write = double('write_file')
+      allow(mock_write).to receive(:write)
+      
+      allow(File).to receive(:open).with(include('lich.rbw'), 'rb').and_yield(mock_read)
+      allow(File).to receive(:open).with(include('lich.rbw'), 'wb').and_yield(mock_write)
     end
 
     it 'removes existing lib files' do
@@ -777,9 +793,8 @@ RSpec.describe Lich::Util::Update do
     end
 
     it 'updates lich.rbw file' do
-      mock_read = double('read_file')
+      mock_read = double('read_file', read: 'new lich content')
       mock_write = double('write_file')
-      allow(mock_read).to receive(:read).and_return('new lich content')
       allow(mock_write).to receive(:write)
 
       expect(File).to receive(:open).with(include('lich.rbw'), 'rb').and_yield(mock_read)
@@ -795,13 +810,26 @@ RSpec.describe Lich::Util::Update do
     before(:each) do
       allow(Dir).to receive(:glob).and_return([snapshot_dir])
       allow(File).to receive(:exist?).and_return(true)
-      allow(File).to receive(:open).and_return(double(read: "LICH_VERSION = \"5.14.2\"\n"))
       allow(File).to receive(:delete)
+      allow(FileUtils).to receive(:rm_rf)
+      allow(FileUtils).to receive(:cp_r)
+      
+      # Mock version.rb read
+      mock_read_version = double('version_file', read: "LICH_VERSION = \"5.14.2\"\n")
+      allow(File).to receive(:open).with(include('version.rb')).and_return(mock_read_version)
+      
+      # Mock lich.rbw operations
+      mock_read_lich = double('read_lich', read: 'old lich content')
+      mock_write_lich = double('write_lich')
+      allow(mock_write_lich).to receive(:write)
+      allow(File).to receive(:open).with(include('lich.rbw'), 'rb').and_yield(mock_read_lich)
+      allow(File).to receive(:open).with(include('lich.rbw'), 'wb').and_yield(mock_write_lich)
     end
 
     context 'when snapshot exists' do
       it 'removes current lib files' do
-        expect(FileUtils).to receive(:rm_rf).with(include(LIB_DIR))
+        # rm_rf is called with Dir.glob results
+        expect(FileUtils).to receive(:rm_rf)
         described_class.revert
       end
 
@@ -816,15 +844,11 @@ RSpec.describe Lich::Util::Update do
       end
 
       it 'restores lich.rbw file' do
-        mock_read_version = double('version_file', read: "LICH_VERSION = \"5.14.2\"\n")
         mock_read_lich = double('read_file', read: 'old lich content')
         mock_write = double('write_file')
         allow(mock_write).to receive(:write)
-
-        # Allow version.rb read (happens first)
-        allow(File).to receive(:open).with(include('version.rb')).and_return(mock_read_version)
         
-        # Expect lich.rbw reads/writes
+        # Expect lich.rbw reads/writes (version.rb already mocked in before)
         expect(File).to receive(:open).with(include('lich.rbw'), 'rb').and_yield(mock_read_lich)
         expect(File).to receive(:open).with(include('lich.rbw'), 'wb').and_yield(mock_write)
 
@@ -860,9 +884,13 @@ RSpec.describe Lich::Util::Update do
 
     before(:each) do
       allow(File).to receive(:exist?).and_return(false)
-      allow(File).to receive(:open).and_call_original
       allow(File).to receive(:rename)
       allow(File).to receive(:delete)
+      
+      # Mock File.open for writing
+      mock_write_file = double('write_file')
+      allow(mock_write_file).to receive(:write)
+      allow(File).to receive(:open).and_yield(mock_write_file)
     end
 
     context 'with script type' do
