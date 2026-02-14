@@ -487,7 +487,6 @@ module Lich
           respond "Successfully updated to branch: #{branch_name}"
           respond "You should exit the game, then log back in to use the updated version."
           respond "Enjoy!"
-
         rescue OpenURI::HTTPError => e
           respond
           respond "Error: Could not download branch '#{branch_name}'"
@@ -542,7 +541,7 @@ module Lich
           # Unpack and prepare to use the requested update
           FileUtils.mkdir_p(File.join(TEMP_DIR, filename))
           Gem::Package.new("").extract_tar_gz(File.open(File.join(TEMP_DIR, "#{filename}.tar.gz"), "rb"),
-                                               File.join(TEMP_DIR, filename))
+                                              File.join(TEMP_DIR, filename))
           new_target = Dir.children(File.join(TEMP_DIR, filename))
           FileUtils.cp_r(File.join(TEMP_DIR, filename, new_target[0]), TEMP_DIR)
           FileUtils.remove_dir(File.join(TEMP_DIR, filename))
