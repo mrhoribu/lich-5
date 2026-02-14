@@ -1,4 +1,4 @@
-## Let's have fun updating Lich5!
+# Let's have fun updating Lich5!
 
 module Lich
   module Util
