@@ -5,6 +5,11 @@ on:
       - "**/*.lic"
       - "**/*.rb"
       - "lich.rbw"
+  pull_request:
+    paths:
+      - "**/*.lic"
+      - "**/*.rb"
+      - "lich.rbw"
 
 permissions:
   contents: write
