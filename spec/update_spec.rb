@@ -6,33 +6,33 @@ require 'tmpdir'
 require 'json'
 
 # Mock Lich constants and methods that would normally be provided by the Lich environment
-module LichMocks
-  LICH_VERSION = '5.14.3'
-  LICH_DIR = '/mock/lich'
-  SCRIPT_DIR = '/mock/lich/scripts'
-  LIB_DIR = '/mock/lich/lib'
-  DATA_DIR = '/mock/lich/data'
-  BACKUP_DIR = '/mock/lich/backup'
-  TEMP_DIR = '/mock/lich/temp'
+LICH_VERSION = '5.14.3'
+LICH_DIR = File.join(File.expand_path("..", File.dirname(__FILE__))) unlesss defined?(LICH_DIR)
+SCRIPT_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'scripts') unlesss defined?(SCRIPT_DIR)
+DATA_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'data') unlesss defined?(DATA_DIR)
+BACKUP_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'backup') unlesss defined?(BACKUP_DIR)
+TEMP_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'temp') unlesss defined?(TEMP_DIR)
+LIB_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'lib') unlesss defined?(LIB_DIR)
 
-  def respond(msg = nil)
-    # Mock respond method
-    @responses ||= []
-    @responses << msg
-  end
+require File.join(LIB_DIR, 'util', 'opts.rb')
 
-  def _respond(msg)
-    respond(msg)
-  end
+def respond(msg = nil)
+  # Mock respond method
+  @responses ||= []
+  @responses << msg
+end unless defined?(respond)
 
-  def monsterbold_start
-    '**'
-  end
+def _respond(msg)
+  respond(msg)
+end unless defined?(_respond)
 
-  def monsterbold_end
-    '**'
-  end
-end
+def monsterbold_start
+  '**'
+end unless defined?(monsterbold_start)
+
+def monsterbold_end
+  '**'
+end unless defined?(monsterbold_end)
 
 # Mock XMLData class
 module XMLData
@@ -52,12 +52,7 @@ module Lich
   end
 end unless defined?(Lich.core_updated_with_lich_version)
 
-# Load the module (in real tests, you'd require the actual file)
-# For this spec, we'll need to have the module defined or loaded
-# require_relative '../update'
-
 RSpec.describe Lich::Util::Update do
-  include LichMocks
 
   before(:each) do
     # Define constants if not already defined
