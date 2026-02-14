@@ -14,7 +14,7 @@ BACKUP_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'backup')
 TEMP_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'temp') unless defined?(TEMP_DIR)
 LIB_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'lib') unless defined?(LIB_DIR)
 
-require File.join(LIB_DIR, 'util', 'opts.rb')
+require File.join(LIB_DIR, 'update.rb')
 
 def respond(msg = nil)
   # Mock respond method
@@ -53,7 +53,6 @@ module Lich
 end unless defined?(Lich.core_updated_with_lich_version)
 
 RSpec.describe Lich::Util::Update do
-
   before(:each) do
     # Define constants if not already defined
     unless defined?(LICH_VERSION)
