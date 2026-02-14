@@ -7,12 +7,12 @@ require 'json'
 
 # Mock Lich constants and methods that would normally be provided by the Lich environment
 LICH_VERSION = '5.14.3'
-LICH_DIR = File.join(File.expand_path("..", File.dirname(__FILE__))) unlesss defined?(LICH_DIR)
-SCRIPT_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'scripts') unlesss defined?(SCRIPT_DIR)
-DATA_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'data') unlesss defined?(DATA_DIR)
-BACKUP_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'backup') unlesss defined?(BACKUP_DIR)
-TEMP_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'temp') unlesss defined?(TEMP_DIR)
-LIB_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'lib') unlesss defined?(LIB_DIR)
+LICH_DIR = File.join(File.expand_path("..", File.dirname(__FILE__))) unless defined?(LICH_DIR)
+SCRIPT_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'scripts') unless defined?(SCRIPT_DIR)
+DATA_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'data') unless defined?(DATA_DIR)
+BACKUP_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'backup') unless defined?(BACKUP_DIR)
+TEMP_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'temp') unless defined?(TEMP_DIR)
+LIB_DIR = File.join(File.expand_path("..", File.dirname(__FILE__)), 'lib') unless defined?(LIB_DIR)
 
 require File.join(LIB_DIR, 'util', 'opts.rb')
 
