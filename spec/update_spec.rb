@@ -39,7 +39,7 @@ class XMLData
   def self.game
     'GS'
   end
-end
+end unless defined?(XMLData.game)
 
 # Mock Lich class
 class Lich
@@ -50,7 +50,7 @@ class Lich
   def self.core_updated_with_lich_version
     @core_updated_with_lich_version
   end
-end
+end unless defined?(Lich.core_updated_with_lich_version)
 
 # Load the module (in real tests, you'd require the actual file)
 # For this spec, we'll need to have the module defined or loaded
