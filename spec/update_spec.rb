@@ -35,14 +35,14 @@ module LichMocks
 end
 
 # Mock XMLData class
-class XMLData
+module XMLData
   def self.game
     'GS'
   end
 end unless defined?(XMLData.game)
 
 # Mock Lich class
-class Lich
+module Lich
   def self.core_updated_with_lich_version=(version)
     @core_updated_with_lich_version = version
   end
