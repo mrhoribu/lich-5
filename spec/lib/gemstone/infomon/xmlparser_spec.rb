@@ -14,17 +14,10 @@
 #
 # Line endings: the corpora use \n only. The regex anchors on [\.!"]\s?\r?\n?$,
 # which tolerates a missing \r, so LF-only storage matches identically to the
-# original \r\n game stream (verified against the full corpus).
+# original \r\n game stream.
 
 require_relative '../../../spec_helper'
 require 'gemstone/infomon/xmlparser.rb'
-
-# Single known parser gap: a grey-mist death where the pronoun is bare ("her")
-# instead of wrapped in <pushBold/><a ...>...</a><popBold/>. The covering postfix
-# currently requires the bolded/linked pronoun, so the bare form is missed. The
-# example below is marked pending; broaden that postfix to make the pronoun wrapper
-# optional, then remove the pending.
-KNOWN_GAP_MARKER = "pouring from her nostrils"
 
 DEATH_CORPUS = <<'__DEATH_CORPUS__'.freeze
 <pushBold/>A <a exist="12345678" noun="being">bent being</a><popBold/> falls over with a curse, then dies.
@@ -1929,26 +1922,14 @@ RSpec.describe "Lich::Gemstone::Infomon::XMLParser NpcDeathMessage" do
     end
 
     it "matches every real death line in the embedded corpus" do
-      lines = positive_lines.reject { |l| l.include?(KNOWN_GAP_MARKER) }
-      expect(lines).not_to be_empty
+      expect(positive_lines).not_to be_empty
 
-      misses = lines.each_with_index.filter_map do |line, idx|
+      misses = positive_lines.each_with_index.filter_map do |line, idx|
         "  ##{idx + 1}: #{line.strip[0, 120]}" unless line =~ npc_death_message
       end
 
       expect(misses).to be_empty,
         "Expected every death line to match, but #{misses.size} did not:\n#{misses.join("\n")}"
-    end
-
-    # Covers the one line excluded above so the full corpus is still exercised.
-    it "detects the bare-pronoun grey-mist death (known parser gap)" do
-      pending("xmlparser.rb postfix requires a bolded pronoun; broaden the " \
-              "'thick grey mist pouring from ... nostrils' postfix to make the " \
-              "<pushBold/><a/></popBold/> wrapper optional, then remove this pending")
-
-      line = positive_lines.find { |l| l.include?(KNOWN_GAP_MARKER) }
-      expect(line).not_to be_nil, "known-gap fixture line is missing from the corpus"
-      expect(line =~ npc_death_message).not_to be_nil
     end
   end
 
@@ -1986,6 +1967,12 @@ RSpec.describe "Lich::Gemstone::Infomon::XMLParser NpcDeathMessage" do
       line = %(You hear a sound like a child weeping as a white glow separates itself from the ) +
              %(<pushBold/><a exist="12345678" noun="spectre">shadowy spectre's</a><popBold/> ) +
              %(body and rises into the heavens.\r\n)
+      expect(line =~ npc_death_message).not_to be_nil
+    end
+
+    it "matches the bare-pronoun grey-mist death" do
+      line = %(The <pushBold/><a exist="12345678" noun="mare">night mare</a><popBold/> ) +
+             %(collapses to the ground, a thick grey mist pouring from her nostrils.\r\n)
       expect(line =~ npc_death_message).not_to be_nil
     end
 
