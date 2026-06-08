@@ -1139,13 +1139,13 @@ The <pushBold/><a exist="12345678" noun="waylayer">ghostly waylayer</a><popBold/
 The <pushBold/><a exist="12345678" noun="swordsman">ethereal swordsman</a><popBold/> tries to crawl away on the ground but is instead consumed by ethereal light.
 The <pushBold/><a exist="12345678" noun="bandit">ghostly bandit</a><popBold/> falls to the ground and dies.
 The <pushBold/><a exist="12345678" noun="squire">ethereal squire</a><popBold/> falls to the ground motionless as small motes of light encompass <pushBold/><a exist="12345678" noun="squire">her</a><popBold/> body.
-The <pushBold/><a exist="12345678" noun="knight">ethereal knight's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="knight">ethereal knight's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="prisoner">ethereal prisoner</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="prisoner">he</a><popBold/> falls to the floor.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="madman">ethereal madman</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="madman">he</a><popBold/> falls to the floor.
 The <pushBold/><a exist="12345678" noun="prisoner">ethereal prisoner</a><popBold/> rolls over on the floor and goes still.
 The <pushBold/><a exist="12345678" noun="knight">ethereal knight</a><popBold/> crashes to the ground in a plume of ethereal energy.
 The <pushBold/><a exist="12345678" noun="squire">ethereal squire</a><popBold/> crashes to the ground in a plume of ethereal energy.
-The <pushBold/><a exist="12345678" noun="Sergeant">Drill Sergeant's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="Sergeant">Drill Sergeant's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="guardsman">ethereal guardsman</a><popBold/> collapses to the ground as the light within <pushBold/><a exist="12345678" noun="guardsman">him</a><popBold/> fades away.
 The <pushBold/><a exist="12345678" noun="steward">unworldly steward</a><popBold/> falls to the floor motionless as small motes of light encompass <pushBold/><a exist="12345678" noun="steward">her</a><popBold/> body.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="slave">unworldly slave</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="slave">he</a><popBold/> falls to the floor.
@@ -1153,9 +1153,9 @@ The <pushBold/><a exist="12345678" noun="servant">unworldly servant</a><popBold/
 The <pushBold/><a exist="12345678" noun="steward">unworldly steward</a><popBold/> collapses to the floor as <pushBold/><a exist="12345678" noun="steward">he</a><popBold/> flickers in and out of existence.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="maid">unworldly maid</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="maid">she</a><popBold/> falls to the floor.
 The <pushBold/><a exist="12345678" noun="maid">unworldly maid</a><popBold/> crashes to the floor in a plume of ethereal energy.
-The <pushBold/><a exist="12345678" noun="servant">unworldly servant's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="servant">unworldly servant's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="maid">unworldly maid</a><popBold/> collapses to the floor as the light within <pushBold/><a exist="12345678" noun="maid">her</a><popBold/> fades away.
-The <pushBold/><a exist="12345678" noun="maid">unworldly maid's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="maid">unworldly maid's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="slave">unworldly slave</a><popBold/> collapses to the floor as <pushBold/><a exist="12345678" noun="slave">he</a><popBold/> flickers in and out of existence.
 The <pushBold/><a exist="12345678" noun="servant">unworldly servant</a><popBold/> falls to the ground and dies.
 The <pushBold/><a exist="12345678" noun="maid">unworldly maid</a><popBold/> shudders before falling into a lifeless heap on the floor.
@@ -1175,7 +1175,7 @@ The <pushBold/><a exist="12345678" noun="knight">royal knight</a><popBold/> is c
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="guard">royal guard</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="guard">he</a><popBold/> falls to the floor.
 The <pushBold/><a exist="12345678" noun="Prince">Royal Prince</a><popBold/> falls to the ground and dies.
 The <pushBold/><a exist="12345678" noun="servant">unworldly servant</a><popBold/> collapses to the floor as the light within <pushBold/><a exist="12345678" noun="servant">her</a><popBold/> fades away.
-The <pushBold/><a exist="12345678" noun="Empress">Royal Empress's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="Empress">Royal Empress's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="Emperor">Royal Emperor</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="Emperor">he</a><popBold/> falls to the floor.
 The <pushBold/><a exist="12345678" noun="guardswoman">ethereal guardswoman</a><popBold/> shudders before falling into a lifeless heap on the ground.
 The <pushBold/><a exist="12345678" noun="guardsman">ethereal guardsman</a><popBold/> falls to the ground motionless as small motes of light encompass <pushBold/><a exist="12345678" noun="guardsman">his</a><popBold/> body.
@@ -1185,14 +1185,14 @@ The <pushBold/><a exist="12345678" noun="guard">ethereal guard</a><popBold/> fal
 The <pushBold/><a exist="12345678" noun="guardsman">ethereal guardsman</a><popBold/> shudders before falling into a lifeless heap on the ground.
 The <pushBold/><a exist="12345678" noun="squire">ethereal squire</a><popBold/> collapses to the ground as the light within <pushBold/><a exist="12345678" noun="squire">her</a><popBold/> fades away.
 The <pushBold/><a exist="12345678" noun="waylayer">ghostly waylayer</a><popBold/> is consumed by ethereal flames as <pushBold/><a exist="12345678" noun="waylayer">she</a><popBold/> falls to the ground.
-The <pushBold/><a exist="12345678" noun="guardsman">ethereal guardsman's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="guardsman">ethereal guardsman's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="guard">ethereal guard</a><popBold/> collapses to the ground as <pushBold/><a exist="12345678" noun="guard">she</a><popBold/> flickers in and out of existence.
 The <pushBold/><a exist="12345678" noun="guard">royal guard</a><popBold/> rolls over on the ground and goes still.
 The <pushBold/><a exist="12345678" noun="peasant">ethereal peasant</a><popBold/> collapses to the ground as <pushBold/><a exist="12345678" noun="peasant">he</a><popBold/> flickers in and out of existence.
 The <pushBold/><a exist="12345678" noun="traveller">ethereal traveller</a><popBold/> rolls over on the ground and goes still.
-The <pushBold/><a exist="12345678" noun="Bartender">Bartender's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="Bartender">Bartender's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="denizen">ethereal denizen</a><popBold/> collapses to the ground as <pushBold/><a exist="12345678" noun="denizen">he</a><popBold/> flickers in and out of existence.
-The <pushBold/><a exist="12345678" noun="traveller">ethereal traveller's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="traveller">ethereal traveller's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="peasant">ethereal peasant</a><popBold/> shudders before falling into a lifeless heap on the ground.
 The <pushBold/><a exist="12345678" noun="peasant">ethereal peasant</a><popBold/> collapses to the ground as the light within <pushBold/><a exist="12345678" noun="peasant">her</a><popBold/> fades away.
 The <pushBold/><a exist="12345678" noun="highwaywoman">ghostly highwaywoman</a><popBold/> shudders before falling into a lifeless heap on the ground.
@@ -1202,7 +1202,7 @@ The ethereal light surrounding the <pushBold/><a exist="12345678" noun="guardswo
 The <pushBold/><a exist="12345678" noun="swordsman">ethereal swordsman</a><popBold/> collapses to the ground as the light within <pushBold/><a exist="12345678" noun="swordsman">him</a><popBold/> fades away.
 The <pushBold/><a exist="12345678" noun="guardsman">ethereal guardsman</a><popBold/> collapses to the ground as <pushBold/><a exist="12345678" noun="guardsman">he</a><popBold/> flickers in and out of existence.
 The <pushBold/><a exist="12345678" noun="marauder">ghostly marauder</a><popBold/> falls to the ground motionless as small motes of light encompass <pushBold/><a exist="12345678" noun="marauder">her</a><popBold/> body.
-The <pushBold/><a exist="12345678" noun="waylayer">ghostly waylayer's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="waylayer">ghostly waylayer's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="highwaywoman">ghostly highwaywoman</a><popBold/> rolls over on the ground and goes still.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="marauder">ghostly marauder</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="marauder">she</a><popBold/> falls to the ground.
 The <pushBold/><a exist="12345678" noun="swordswoman">ethereal swordswoman</a><popBold/> crashes to the ground in a plume of ethereal energy.
@@ -1223,11 +1223,11 @@ The <pushBold/><a exist="12345678" noun="waylayer">gnomish waylayer</a><popBold/
 The <pushBold/><a exist="12345678" noun="scout">elven scout</a><popBold/> falls to the ground and dies.
 The <pushBold/><a exist="12345678" noun="brigand">elven brigand</a><popBold/> falls to the ground and dies.
 The <pushBold/><a exist="12345678" noun="brigand">halfling brigand</a><popBold/> rolls over and dies.
-The <pushBold/><a exist="12345678" noun="pirate">ethereal pirate's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="pirate">ethereal pirate's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="pillager">unworldly pillager</a><popBold/> rolls over on the ground and goes still.
 The <pushBold/><a exist="12345678" noun="raider">ethereal raider</a><popBold/> rolls over on the ground and goes still.
-The <pushBold/><a exist="12345678" noun="pirate">unworldly pirate's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
-The <pushBold/><a exist="12345678" noun="waylayer">ethereal waylayer's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="pirate">unworldly pirate's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
+The <pushBold/><a exist="12345678" noun="waylayer">ethereal waylayer's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="pirate">unworldly pirate</a><popBold/> rolls over on the ground and goes still.
 The <pushBold/><a exist="12345678" noun="raider">unworldly raider</a><popBold/> rolls over on the ground and goes still.
 The <pushBold/><a exist="12345678" noun="scout">ethereal scout</a><popBold/> rolls over on the ground and goes still.
@@ -1248,11 +1248,11 @@ The glimmer of a <a exist="12345678" noun="moonstone">grey moonstone</a> catches
 The glimmer of a <a exist="12345678" noun="moonstone">grey moonstone</a> catches your eye as the <pushBold/><a exist="12345678" noun="elemental">water elemental</a><popBold/> gurgles eerily and collapses into the water.
 The glimmer of a <a exist="12345678" noun="topaz">smoky topaz</a> catches your eye as the <pushBold/><a exist="12345678" noun="elemental">water elemental</a><popBold/> gurgles eerily and collapses into a puddle of water.
 The <pushBold/><a exist="12345678" noun="herald">Ithzir herald</a><popBold/> staggers, feebly trying to catch <pushBold/><a exist="12345678" noun="herald">himself</a><popBold/>, then collapses with a wheeze.
-The <pushBold/><a exist="12345678" noun="commoner">ethereal commoner's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
-The <pushBold/><a exist="12345678" noun="peasant">ethereal peasant's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="commoner">ethereal commoner's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
+The <pushBold/><a exist="12345678" noun="peasant">ethereal peasant's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="townsman">ethereal townsman</a><popBold/> is consumed by ethereal flames as <pushBold/><a exist="12345678" noun="townsman">he</a><popBold/> falls to the ground.
 The <pushBold/><a exist="12345678" noun="denizen">ethereal denizen</a><popBold/> tries to crawl away on the ground but is instead consumed by ethereal light.
-The <pushBold/><a exist="12345678" noun="villager">ethereal villager's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="villager">ethereal villager's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="townsman">ethereal townsman</a><popBold/> shudders before falling into a lifeless heap on the ground.
 The <pushBold/><a exist="12345678" noun="Leader">Patrol Leader</a><popBold/> collapses to the ground as the light within <pushBold/><a exist="12345678" noun="Leader">it</a><popBold/> fades away.
 The <pushBold/><a exist="12345678" noun="villager">ethereal villager</a><popBold/> shudders before falling into a lifeless heap on the ground.
@@ -1321,13 +1321,13 @@ The <pushBold/><a exist="12345678" noun="peasant">ethereal peasant</a><popBold/>
 The <pushBold/><a exist="12345678" noun="Bartender">Bartender</a><popBold/> falls to the ground and dies.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="villager">ethereal villager</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="villager">she</a><popBold/> falls to the ground.
 The <pushBold/><a exist="12345678" noun="denizen">ethereal denizen</a><popBold/> falls to the ground and dies.
-The <pushBold/><a exist="12345678" noun="townswoman">ethereal townswoman's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="townswoman">ethereal townswoman's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="peasant">ethereal peasant</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="peasant">he</a><popBold/> falls to the ground.
-The <pushBold/><a exist="12345678" noun="denizen">ethereal denizen's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="denizen">ethereal denizen's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="peasant">ethereal peasant</a><popBold/> crashes to the ground in a plume of ethereal energy.
 The ethereal light surrounding the <pushBold/><a exist="12345678" noun="waylayer">ghostly waylayer</a><popBold/> grows dim as <pushBold/><a exist="12345678" noun="waylayer">she</a><popBold/> falls to the ground.
 The <pushBold/><a exist="12345678" noun="Captain">Guard Captain</a><popBold/> rolls over on the ground and goes still.
-The <pushBold/><a exist="12345678" noun="swordsman">ethereal swordsman's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="swordsman">ethereal swordsman's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="swordsman">ethereal swordsman</a><popBold/> is consumed by ethereal flames as <pushBold/><a exist="12345678" noun="swordsman">he</a><popBold/> falls to the ground.
 The <pushBold/><a exist="12345678" noun="guardswoman">ethereal guardswoman</a><popBold/> collapses to the ground as <pushBold/><a exist="12345678" noun="guardswoman">she</a><popBold/> flickers in and out of existence.
 The <pushBold/><a exist="12345678" noun="guardsman">ethereal guardsman</a><popBold/> is consumed by ethereal flames as <pushBold/><a exist="12345678" noun="guardsman">he</a><popBold/> falls to the ground.
@@ -1338,7 +1338,7 @@ The <pushBold/><a exist="12345678" noun="squire">ethereal squire</a><popBold/> s
 The <pushBold/><a exist="12345678" noun="squire">ethereal squire</a><popBold/> collapses to the ground as <pushBold/><a exist="12345678" noun="squire">she</a><popBold/> flickers in and out of existence.
 The <pushBold/><a exist="12345678" noun="Sergeant">Drill Sergeant</a><popBold/> falls to the ground and dies.
 The <pushBold/><a exist="12345678" noun="steward">unworldly steward</a><popBold/> crashes to the floor in a plume of ethereal energy.
-The <pushBold/><a exist="12345678" noun="steward">unworldly steward's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="steward">unworldly steward's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="steward">unworldly steward</a><popBold/> rolls over on the floor and goes still.
 The <pushBold/><a exist="12345678" noun="servant">unworldly servant</a><popBold/> tries to crawl away on the floor but is instead consumed by ethereal light.
 The <pushBold/><a exist="12345678" noun="servant">unworldly servant</a><popBold/> falls to the floor motionless as small motes of light encompass <pushBold/><a exist="12345678" noun="servant">her</a><popBold/> body.
@@ -1351,7 +1351,7 @@ The <pushBold/><a exist="12345678" noun="maid">unworldly maid</a><popBold/> roll
 The <pushBold/><a exist="12345678" noun="noble">unworldly noble</a><popBold/> tries to crawl away on the ground but is instead consumed by ethereal light.
 The <pushBold/><a exist="12345678" noun="knight">royal knight</a><popBold/> is consumed by ethereal flames as <pushBold/><a exist="12345678" noun="knight">he</a><popBold/> falls to the floor.
 The <pushBold/><a exist="12345678" noun="visitor">unworldly visitor</a><popBold/> tries to crawl away on the floor but is instead consumed by ethereal light.
-The <pushBold/><a exist="12345678" noun="noble">unworldly noble's</a><popBold/> body falls to the ground as it is consumed by ethereal flame. 
+The <pushBold/><a exist="12345678" noun="noble">unworldly noble's</a><popBold/> body falls to the ground as it is consumed by ethereal flame.
 The <pushBold/><a exist="12345678" noun="Dignitary">Foreign Dignitary</a><popBold/> rolls over and dies.
 The <pushBold/><a exist="12345678" noun="guest">unworldly guest</a><popBold/> shudders before falling into a lifeless heap on the floor.
 The <pushBold/><a exist="12345678" noun="guard">royal guard</a><popBold/> falls to the floor motionless as small motes of light encompass <pushBold/><a exist="12345678" noun="guard">his</a><popBold/> body.
@@ -1929,7 +1929,7 @@ RSpec.describe "Lich::Gemstone::Infomon::XMLParser NpcDeathMessage" do
       end
 
       expect(misses).to be_empty,
-        "Expected every death line to match, but #{misses.size} did not:\n#{misses.join("\n")}"
+                        "Expected every death line to match, but #{misses.size} did not:\n#{misses.join("\n")}"
     end
   end
 
@@ -1942,7 +1942,7 @@ RSpec.describe "Lich::Gemstone::Infomon::XMLParser NpcDeathMessage" do
       end
 
       expect(false_positives).to be_empty,
-        "Item-drop lines were wrongly detected as deaths:\n#{false_positives.join("\n")}"
+                                 "Item-drop lines were wrongly detected as deaths:\n#{false_positives.join("\n")}"
     end
   end
 
