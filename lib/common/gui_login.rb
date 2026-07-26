@@ -3,7 +3,10 @@
 require_relative 'gui/accessibility'
 require_relative 'gui/account_manager'
 require_relative 'gui/account_manager_ui'
-require_relative 'gui/authentication'
+require_relative 'authentication/authenticator'
+require_relative 'authentication/entry_store'
+require_relative 'authentication/gui'
+require_relative 'session_launcher'
 require_relative 'gui/components'
 require_relative 'gui/conversion_ui'
 require_relative 'gui/favorites_manager'
@@ -16,7 +19,6 @@ require_relative 'gui/saved_login_tab'
 require_relative 'gui/state'
 require_relative 'gui/theme_utils'
 require_relative 'gui/utilities'
-require_relative 'gui/yaml_state'
 require_relative 'gui/tab_communicator'
 require_relative 'gui/window_settings'
 
@@ -52,12 +54,13 @@ module Lich
       @autosort_state = Lich.track_autosort_state
       @tab_layout_state = Lich.track_layout_state
       @theme_state = Lich.track_dark_mode
+      @persistent_launcher_mode = Lich.track_persistent_launcher_mode
 
       # Initialize accessibility support
       Lich::Common::GUI::Accessibility.initialize_accessibility if defined?(Lich::Common::GUI::Accessibility)
 
-      # Use YamlState instead of State for loading saved entries
-      @entry_data = Lich::Common::GUI::YamlState.load_saved_entries(DATA_DIR, @autosort_state)
+      # Use EntryStore instead of State for loading saved entries
+      @entry_data = Lich::Common::Authentication::EntryStore.load_saved_entries(DATA_DIR, @autosort_state)
       @launch_data = nil
       @save_entry_data = false
       @done = false
@@ -80,7 +83,7 @@ module Lich
     def refresh_window_after_conversion
       begin
         # Reload entry data from newly created YAML file
-        @entry_data = Lich::Common::GUI::YamlState.load_saved_entries(DATA_DIR, @autosort_state)
+        @entry_data = Lich::Common::Authentication::EntryStore.load_saved_entries(DATA_DIR, @autosort_state)
 
         # Enable favorites in saved login tab if YAML file now exists
         if @saved_login_tab
@@ -120,7 +123,7 @@ module Lich
         end
 
         # Notify via tab communicator that conversion refresh occurred
-        yaml_file = Lich::Common::GUI::YamlState.yaml_file_path(DATA_DIR)
+        yaml_file = Lich::Common::Authentication::EntryStore.yaml_file_path(DATA_DIR)
         encryption_mode = nil
         if File.exist?(yaml_file)
           yaml_data = YAML.load_file(yaml_file)
@@ -255,7 +258,7 @@ module Lich
       # Register saved login tab for data change notifications
       @tab_communicator.register_data_change_callback(->(change_type, data) {
         # Refresh main GUI entry data cache to prevent stale data issues
-        @entry_data = Lich::Common::GUI::YamlState.load_saved_entries(DATA_DIR, @autosort_state)
+        @entry_data = Lich::Common::Authentication::EntryStore.load_saved_entries(DATA_DIR, @autosort_state)
 
         # Refresh saved login tab for all data changes to ensure synchronization
         @saved_login_tab.refresh_data if @saved_login_tab
@@ -292,13 +295,8 @@ module Lich
     def create_tab_instances
       # Create callbacks for saved login tab
       saved_login_callbacks = {
-        on_play: ->(launch_data) {
-          @launch_data = launch_data
-          # Wrap window destruction in Gtk.queue to ensure it runs on the GTK main thread
-          Gtk.queue {
-            @window.destroy unless @window.destroyed?
-            @done = true
-          }
+        on_play: ->(launch_data, login_context = nil) {
+          handle_play_action(launch_data, login_context)
         },
         on_remove: ->(login_info) {
           # Use AccountManager to remove character directly from YAML to preserve encryption
@@ -312,7 +310,7 @@ module Lich
           )
             # Reload entry_data from updated YAML to stay in sync
             begin
-              new_entry_data = GUI::YamlState.load_saved_entries(DATA_DIR, @autosort_state)
+              new_entry_data = Authentication::EntryStore.load_saved_entries(DATA_DIR, @autosort_state)
               @entry_data = new_entry_data
 
               # Create sanitized entry for notification (without password)
@@ -353,6 +351,9 @@ module Lich
         on_sort_change: ->(state) {
           # Handle sort change
         },
+        on_persistent_launcher_change: ->(state) {
+          @persistent_launcher_mode = state
+        },
         on_favorites_change: ->(username:, char_name:, game_code:, is_favorite:) {
           # Handle favorite status change - notify other tabs
           @tab_communicator.notify_data_changed(:favorite_toggled, {
@@ -366,13 +367,8 @@ module Lich
 
       # Create callbacks for manual login tab
       manual_login_callbacks = {
-        on_play: ->(launch_data) {
-          @launch_data = launch_data
-          # Wrap window destruction in Gtk.queue to ensure it runs on the GTK main thread
-          Gtk.queue {
-            @window.destroy unless @window.destroyed?
-            @done = true
-          }
+        on_play: ->(launch_data, login_context = nil) {
+          handle_play_action(launch_data, login_context)
         },
         # Handles successful login data saving from manual login tab
         # Optimized to reduce redundant cache refreshes
@@ -381,7 +377,7 @@ module Lich
         on_save: ->(launch_data) {
           # Only refresh cache if we don't already have the latest data
           # This prevents redundant file I/O operations
-          @entry_data = Lich::Common::GUI::YamlState.load_saved_entries(DATA_DIR, @autosort_state)
+          @entry_data = Lich::Common::Authentication::EntryStore.load_saved_entries(DATA_DIR, @autosort_state)
           # commenting out to assess impact, remove when cleared
           # @save_entry_data = true
 
@@ -496,15 +492,8 @@ module Lich
       window_settings = Lich::Common::GUI::WindowSettings.load(DATA_DIR)
       Lich::Common::GUI::WindowSettings.apply_to_window(@window, window_settings)
 
-      @window.signal_connect('delete_event') {
-        # Save window geometry before destruction
-        save_window_geometry
-
-        # Clean up cross-tab communication
-        @tab_communicator.clear_callbacks if @tab_communicator
-        @window.destroy unless @window.destroyed?
-        @done = true
-      }
+      @window.signal_connect('delete_event') { handle_window_delete_event }
+      @window.signal_connect('destroy') { handle_window_destroy }
 
       # Apply initial theme to window
       if @theme_state
@@ -552,6 +541,33 @@ module Lich
       )
     end
 
+    # Handles a user-initiated window close request.
+    #
+    # GTK expects `delete_event` handlers to either veto closure or allow the
+    # default destroy path to proceed. We save launcher state here and let GTK
+    # perform the actual widget destruction so shutdown does not become
+    # re-entrant inside the close signal callback.
+    #
+    # @return [Boolean] false to allow GTK to destroy the window normally
+    def handle_window_delete_event
+      save_window_geometry
+      false
+    end
+
+    # Finalizes launcher shutdown state once GTK has destroyed the main window.
+    #
+    # This callback is intentionally idempotent because both user-driven closes
+    # and programmatic single-launch shutdown flow through the same destroy path.
+    #
+    # @return [void]
+    def handle_window_destroy
+      return if @window_destroyed
+
+      @window_destroyed = true
+      @tab_communicator.clear_callbacks if @tab_communicator
+      @done = true
+    end
+
     # Applies button style for light mode
     #
     # Sets a lighter background color for buttons when in light mode.
@@ -597,6 +613,57 @@ module Lich
       @notebook.set_page(1) if @entry_data.empty?
     end
 
+    # Handles launch action for both saved and manual tabs.
+    # Persistent launcher mode is intentionally scoped to saved-entry launches.
+    # Manual login launches keep single-launch semantics to avoid form-reset friction.
+    #
+    # @param launch_data [Array<String>] Prepared launch data from auth flow
+    # @param login_context [Hash, nil] Optional launch context from GUI tabs
+    # @return [void]
+    def handle_play_action(launch_data, login_context = nil)
+      if use_persistent_launcher?(login_context)
+        # Persistent mode: launch child session, keep the launcher window active.
+        if login_context.is_a?(Hash) && !login_context.key?(:dark_mode)
+          # Propagate the current launcher theme state into detached child startup.
+          login_context = login_context.merge(dark_mode: Lich.track_dark_mode)
+        end
+
+        launch_result = if login_context.nil?
+                          Lich::Common::SessionLauncher.launch(launch_data)
+                        else
+                          Lich::Common::SessionLauncher.launch(launch_data, launch_context: login_context)
+                        end
+        unless launch_result[:ok]
+          @msgbox.call("Failed to launch session: #{launch_result[:error]}") if @msgbox
+        end
+      else
+        # Default/single-launch path: used when persistent mode is disabled OR
+        # when launch originates from manual login.
+        @launch_data = launch_data
+        close_launcher_window
+      end
+    end
+
+    # Returns true only for saved-entry launches while persistent mode is enabled.
+    # Manual login path does not include account credentials in context.
+    #
+    # @param login_context [Hash, nil]
+    # @return [Boolean]
+    def use_persistent_launcher?(login_context)
+      return false unless @persistent_launcher_mode
+      return true unless login_context.is_a?(Hash)
+
+      saved_entry_context?(login_context)
+    end
+
+    # Saved-entry callbacks carry account credentials in context.
+    #
+    # @param login_context [Hash]
+    # @return [Boolean]
+    def saved_entry_context?(login_context)
+      login_context.key?(:user_id) && login_context.key?(:password)
+    end
+
     # Saves entry data if needed
     #
     # Saves the entry data to the YAML file if there are unsaved changes.
@@ -606,7 +673,7 @@ module Lich
     def save_entry_data_if_needed
       if @save_entry_data
         # Save entry data - optimized to avoid redundant cache refresh
-        Lich::Common::GUI::YamlState.save_entries(DATA_DIR, @entry_data)
+        Lich::Common::Authentication::EntryStore.save_entries(DATA_DIR, @entry_data)
         @save_entry_data = false
       end
     end
@@ -618,11 +685,35 @@ module Lich
     # @return [Array, nil] Launch data if available
     def return_launch_data_or_exit
       if @launch_data.nil?
-        Gtk.queue { Gtk.main_quit }
+        Lich::Common.shutdown_gtk_before_exit
         exit
       end
 
       @launch_data
+    end
+
+    # Closes the launcher window through GTK's normal destroy path.
+    #
+    # Single-launch mode uses the same close sequence as a user clicking the
+    # window close button so all launcher cleanup remains centralized.
+    #
+    # @return [void]
+    def close_launcher_window
+      queued = Gtk.queue { destroy_launcher_window }
+      return if queued
+
+      destroy_launcher_window
+      handle_window_destroy
+    end
+
+    # Saves launcher geometry and destroys the window when it is still live.
+    #
+    # @return [void]
+    def destroy_launcher_window
+      return if @window.nil? || (@window.respond_to?(:destroyed?) && @window.destroyed?)
+
+      save_window_geometry
+      @window.destroy
     end
   end
 end

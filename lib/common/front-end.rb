@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'tempfile'
 require 'json'
 require 'fileutils'
@@ -40,8 +42,171 @@ module Lich
       @tmp_session_dir = File.join Dir.tmpdir, "simutronics", "sessions"
       @frontend_pid = nil
       @pid_mutex = Mutex.new
-      @supports_xml = true
-      @client = ""
+      ORIGIN_SENTINEL = "\x1f"
+
+      # --- Frontend Registry -------------------------------------
+      # Each registered frontend has:
+      #   - capabilities: Set of symbols (e.g., :xml, :streams, :mono)
+      #   - metadata: Hash of additional data (e.g., client_string)
+      #
+      # This registry-based approach allows adding new frontends via
+      # configuration without modifying the controller code.
+      @registry = Hash.new { |h, k| h[k] = { capabilities: Set.new, metadata: {} } }
+
+      # Registers a frontend with its capabilities and metadata.
+      # @param name [Symbol, String] The name of the frontend (e.g., :wrayth)
+      # @param capabilities [Array<Symbol>] A list of capabilities (e.g., [:xml, :streams])
+      # @param metadata [Hash] Additional data (e.g., { client_string: "..." })
+      def self.register(name, capabilities: [], metadata: {})
+        entry = @registry[name.to_s.downcase]
+        entry[:capabilities].merge(capabilities.map(&:to_sym))
+        entry[:metadata].merge!(metadata)
+      end
+
+      # Checks if a frontend has a specific capability.
+      # @param frontend_name [String] The name of the frontend to check
+      # @param capability [Symbol] The capability to check for
+      # @return [Boolean]
+      def self.has_capability?(frontend_name, capability)
+        return false if frontend_name.nil?
+
+        @registry[frontend_name.to_s.downcase][:capabilities].include?(capability.to_sym)
+      end
+
+      # Retrieves a metadata value for a given frontend.
+      # @param frontend_name [String] The name of the frontend
+      # @param key [Symbol] The metadata key to retrieve
+      # @return [Object, nil]
+      def self.metadata_for(frontend_name, key)
+        return nil if frontend_name.nil?
+
+        @registry[frontend_name.to_s.downcase][:metadata][key]
+      end
+
+      # Returns all registered frontend names.
+      # @return [Array<String>]
+      def self.registered_frontends
+        @registry.keys
+      end
+
+      # Returns all frontends that have a specific capability.
+      # @param capability [Symbol] The capability to filter by
+      # @return [Array<String>]
+      def self.frontends_with_capability(capability)
+        @registry.select { |_name, data| data[:capabilities].include?(capability.to_sym) }.keys
+      end
+
+      # --- Default Frontend Registrations ------------------------
+      # Ideally this would live in a separate config file loaded during init.
+
+      register(:wrayth,
+               capabilities: %i[xml streams mono room_window])
+
+      register(:stormfront,
+               capabilities: %i[xml streams mono room_window])
+
+      register(:profanity,
+               capabilities: %i[xml streams])
+
+      register(:genie,
+               capabilities: %i[xml mono])
+
+      register(:frostbite,
+               capabilities: %i[xml])
+
+      register(:wizard,
+               capabilities: %i[gsl])
+
+      register(:avalon,
+               capabilities: %i[gsl])
+
+      register(:saga,
+               capabilities: %i[xml streams mono room_window sentinel])
+
+      # --- Client String -----------------------------------------
+      # Default client string (Wrayth identity) sent during handshake
+      CLIENT_STRING = "/FE:WRAYTH /VERSION:1.0.1.28 /P:WIN_UNKNOWN /XML"
+
+      # --- Backward-Compatible Constants -------------------------
+      # These arrays are derived from the registry for backward compatibility.
+      # External code may still reference these constants directly.
+      XML_FRONTENDS      = frontends_with_capability(:xml).freeze
+      GSL_FRONTENDS      = frontends_with_capability(:gsl).freeze
+      STREAM_FRONTENDS   = frontends_with_capability(:streams).freeze
+      MONO_FRONTENDS     = frontends_with_capability(:mono).freeze
+      SENTINEL_FRONTENDS = frontends_with_capability(:sentinel).freeze
+
+      # --- Predicate Methods -------------------------------------
+      # These now delegate to has_capability? for consistency.
+
+      def self.supports_xml?(fe = $frontend)
+        has_capability?(fe, :xml)
+      end
+
+      def self.supports_gsl?(fe = $frontend)
+        has_capability?(fe, :gsl)
+      end
+
+      def self.supports_streams?(fe = $frontend)
+        has_capability?(fe, :streams)
+      end
+
+      def self.supports_mono?(fe = $frontend)
+        has_capability?(fe, :mono)
+      end
+
+      def self.supports_room_window?(fe = $frontend)
+        has_capability?(fe, :room_window)
+      end
+
+      def self.supports_sentinel?(fe = $frontend)
+        has_capability?(fe, :sentinel)
+      end
+
+      # Build the <playerID> re-emit tag for a detachable client (e.g. Saga).
+      #
+      # Lich consumes the game's one-time <playerID> during its own login
+      # handshake, before a detachable client attaches, so the client never
+      # sees it. XMLData.player_id stores the id verbatim, so re-emitting
+      # reproduces exactly what a Direct login delivers.
+      #
+      # Returns the tag string only when player_id is a bare numeric id (the
+      # form the game sends). Returns nil otherwise, so callers skip emitting
+      # an empty or malformed tag before login has populated the id.
+      def self.player_id_tag(player_id)
+        id = player_id.to_s
+        return nil unless id =~ /\A\d+\z/
+
+        "<playerID id='#{id}'/>"
+      end
+
+      # Accessor for the current frontend identity ($frontend global)
+      def self.client
+        $frontend
+      end
+
+      # Setter for the current frontend identity
+      def self.client=(value)
+        $frontend = value
+      end
+
+      # Send version string, ready signals, and setup commands to the game server.
+      # Used during login handshake for wizard/avalon/frostbite frontends.
+      def self.send_handshake(version_string)
+        $_CLIENTBUFFER_.push(version_string.dup)
+        Game._puts(version_string)
+        2.times do
+          sleep 0.3
+          $_CLIENTBUFFER_.push("#{$cmd_prefix}\r\n")
+          Game._puts($cmd_prefix)
+        end
+        ["#{$cmd_prefix}_injury 2",
+         "#{$cmd_prefix}_flag Display Inventory Boxes 1",
+         "#{$cmd_prefix}_flag Display Dialog Boxes 0"].each do |cmd|
+          $_CLIENTBUFFER_.push(cmd)
+          Game._puts(cmd)
+        end
+      end
 
       def self.create_session_file(name, host, port, display_session: true)
         return if name.nil?
@@ -393,3 +558,6 @@ module Lich
     end
   end
 end
+
+# Top-level alias so all consumers can use bare `Frontend`
+Frontend = Lich::Common::Frontend unless defined?(Frontend)

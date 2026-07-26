@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../spec_helper'
+require 'json'
 
 # Mock StringProc for testing
 class StringProc
@@ -82,6 +83,15 @@ RSpec.describe Lich::Common::MinHeap do
       results = [heap.pop, heap.pop, heap.pop]
       expect(results.map(&:first)).to all(eq(5))
       expect(results.map(&:last).sort).to eq(%w[a b c])
+    end
+
+    it 'maintains ordering across many elements' do
+      values = (1..100).to_a.shuffle
+      values.each { |v| heap.push(v, v) }
+
+      sorted = []
+      sorted << heap.pop[0] until heap.empty?
+      expect(sorted).to eq((1..100).to_a)
     end
   end
 
@@ -235,6 +245,27 @@ RSpec.describe Lich::Common::MapBase do
         expect(parsed).not_to have_key('tags')
         expect(parsed).not_to have_key('image')
       end
+
+      it 'returns empty hash from json_extra_fields by default' do
+        room = test_class.new(1)
+        expect(room.json_extra_fields).to eq({})
+      end
+
+      it 'merges json_extra_fields into output' do
+        room = test_class.new(1)
+        allow(room).to receive(:json_extra_fields).and_return({ custom_field: 'test_value' })
+        json_string = room.to_json
+        parsed = JSON.parse(json_string)
+        expect(parsed['custom_field']).to eq('test_value')
+      end
+
+      it 'filters nil values from json_extra_fields' do
+        room = test_class.new(1)
+        allow(room).to receive(:json_extra_fields).and_return({ custom_field: nil })
+        json_string = room.to_json
+        parsed = JSON.parse(json_string)
+        expect(parsed).not_to have_key('custom_field')
+      end
     end
 
     describe 'deprecated methods' do
@@ -319,6 +350,14 @@ RSpec.describe Lich::Common::MapBase do
         expect(distances[3]).to eq(3) # Verify we found shortest distance
         # previous[3] could be 1 or 2 depending on traversal order (both valid)
         expect([1, 2]).to include(previous[3])
+      end
+
+      it 'terminates early when destination reached' do
+        room = test_class.test_list[0]
+        previous, _ = room.dijkstra(1)
+
+        # Should find path to room 1 without necessarily exploring all nodes
+        expect(previous[1]).to eq(0)
       end
 
       it 'handles unreachable rooms' do
@@ -419,6 +458,108 @@ RSpec.describe Lich::Common::MapBase do
     end
   end
 
+  describe 'ClassMethods' do
+    before do
+      test_class.test_list = []
+      test_class.test_loaded = true
+    end
+
+    describe '.get_free_id' do
+      it 'returns one more than the max existing id' do
+        test_class.test_list[0] = test_class.new(0)
+        test_class.test_list[3] = test_class.new(3)
+        test_class.test_list[5] = test_class.new(5)
+
+        expect(test_class.get_free_id).to eq(6)
+      end
+    end
+
+    describe '.estimate_time' do
+      it 'sums timeto values along a path' do
+        test_class.test_list[0] = test_class.new(0, wayto: { '1' => 'north' }, timeto: { '1' => 0.5 })
+        test_class.test_list[1] = test_class.new(1, wayto: { '2' => 'east' }, timeto: { '2' => 0.3 })
+        test_class.test_list[2] = test_class.new(2)
+
+        expect(test_class.estimate_time([0, 1, 2])).to be_within(0.001).of(0.8)
+      end
+
+      it 'uses 0.2 as default when timeto is nil' do
+        test_class.test_list[0] = test_class.new(0, wayto: { '1' => 'north' }, timeto: {})
+        test_class.test_list[1] = test_class.new(1)
+
+        expect(test_class.estimate_time([0, 1])).to be_within(0.001).of(0.2)
+      end
+    end
+
+    describe '.uids_add and .ids_from_uid' do
+      it 'adds and retrieves uid mappings' do
+        test_class.uids_add(100, 5)
+        test_class.uids_add(100, 6)
+        expect(test_class.ids_from_uid(100)).to eq([5, 6])
+      end
+
+      it 'returns empty array for unknown uid' do
+        expect(test_class.ids_from_uid(999)).to eq([])
+      end
+
+      it 'does not add duplicate ids' do
+        test_class.uids_add(100, 5)
+        test_class.uids_add(100, 5)
+        expect(test_class.ids_from_uid(100)).to eq([5])
+      end
+    end
+
+    describe '.to_json' do
+      it 'produces valid JSON array of all rooms' do
+        test_class.test_list[0] = test_class.new(0, paths: ['Paths A'])
+        test_class.test_list[1] = test_class.new(1, paths: ['Paths B'])
+
+        json_string = test_class.to_json
+        parsed = JSON.parse(json_string)
+        expect(parsed).to be_an(Array)
+        expect(parsed.size).to eq(2)
+        expect(parsed[0]['id']).to eq(0)
+        expect(parsed[1]['id']).to eq(1)
+      end
+    end
+
+    describe '.findpath' do
+      before do
+        room0 = test_class.new(0, wayto: { '1' => 'north', '2' => 'east' }, timeto: { '1' => 1, '2' => 5 })
+        room1 = test_class.new(1, wayto: { '2' => 'east' }, timeto: { '2' => 1 })
+        room2 = test_class.new(2)
+
+        test_class.test_list[0] = room0
+        test_class.test_list[1] = room1
+        test_class.test_list[2] = room2
+      end
+
+      it 'finds path between two room ids' do
+        path = test_class.findpath(0, 2)
+        expect(path).to eq([1, 2])
+      end
+
+      it 'accepts a Room object as source' do
+        room0 = test_class.test_list[0]
+        path = test_class.findpath(room0, 2)
+        expect(path).to eq([1, 2])
+      end
+    end
+
+    describe '.dijkstra class method' do
+      it 'dispatches to instance dijkstra' do
+        room0 = test_class.new(0, wayto: { '1' => 'north' }, timeto: { '1' => 1 })
+        room1 = test_class.new(1)
+
+        test_class.test_list[0] = room0
+        test_class.test_list[1] = room1
+
+        previous, = test_class.dijkstra(0, 1)
+        expect(previous[1]).to eq(0)
+      end
+    end
+  end
+
   describe 'StringProc support in timeto' do
     before do
       test_class.test_list = []
@@ -461,6 +602,168 @@ RSpec.describe Lich::Common::MapBase do
 
       expect(distances[1]).to be_nil # Path disabled
       expect(distances[2]).to eq(1)  # Path enabled
+    end
+  end
+
+  describe '.apply_wayto_overrides' do
+    let(:settings) { OpenStruct.new }
+
+    before do
+      test_class.test_list = []
+      test_class.test_loaded = true
+
+      room10 = test_class.new(10, wayto: {}, timeto: {})
+      room20 = test_class.new(20, wayto: {}, timeto: {})
+      test_class.test_list[10] = room10
+      test_class.test_list[20] = room20
+
+      stub_const('GameSettings', {})
+      allow(test_class).to receive(:get_settings).and_return(settings)
+    end
+
+    it 'applies wayto overrides with str_proc' do
+      settings.base_wayto_overrides = {
+        'override1' => {
+          'start_room' => 10,
+          'end_room'   => 20,
+          'str_proc'   => 'move north'
+        }
+      }
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = nil
+
+      test_class.apply_wayto_overrides
+      expect(test_class.test_list[10].wayto['20']).to be_a(StringProc)
+    end
+
+    it 'applies wayto overrides with numeric travel_time' do
+      settings.base_wayto_overrides = {
+        'override1' => {
+          'start_room'  => 10,
+          'end_room'    => 20,
+          'str_proc'    => 'move north',
+          'travel_time' => 3.5
+        }
+      }
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = nil
+
+      test_class.apply_wayto_overrides
+      expect(test_class.test_list[10].timeto['20']).to eq(3.5)
+    end
+
+    it 'applies travel_time as StringProc when non-numeric' do
+      settings.base_wayto_overrides = {
+        'override1' => {
+          'start_room'  => 10,
+          'end_room'    => 20,
+          'travel_time' => '1 + 2'
+        }
+      }
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = nil
+
+      test_class.apply_wayto_overrides
+      expect(test_class.test_list[10].timeto['20']).to be_a(StringProc)
+    end
+
+    it 'personal overrides take precedence over base overrides' do
+      settings.base_wayto_overrides = {
+        'override1' => {
+          'start_room' => 10,
+          'end_room'   => 20,
+          'str_proc'   => 'move north'
+        }
+      }
+      settings.personal_wayto_overrides = {
+        'override1' => {
+          'start_room' => 10,
+          'end_room'   => 20,
+          'str_proc'   => 'go door'
+        }
+      }
+      settings.personal_map_targets = nil
+
+      test_class.apply_wayto_overrides
+      proc = test_class.test_list[10].wayto['20']
+      expect(proc).to be_a(StringProc)
+    end
+
+    it 'skips entries missing start_room' do
+      settings.base_wayto_overrides = {
+        'bad' => { 'end_room' => 20, 'str_proc' => 'go north' }
+      }
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = nil
+
+      test_class.apply_wayto_overrides
+      expect(test_class.test_list[10].wayto).to be_empty
+      expect(test_class.test_list[20].wayto).to be_empty
+    end
+
+    it 'skips entries missing end_room' do
+      settings.base_wayto_overrides = {
+        'bad' => { 'start_room' => 10, 'str_proc' => 'go north' }
+      }
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = nil
+
+      test_class.apply_wayto_overrides
+      expect(test_class.test_list[10].wayto).to be_empty
+    end
+
+    it 'skips non-hash override entries' do
+      settings.base_wayto_overrides = { 'bad' => 'not a hash' }
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = nil
+
+      expect { test_class.apply_wayto_overrides }.not_to raise_error
+    end
+
+    it 'skips entries where start_room does not exist in map' do
+      settings.base_wayto_overrides = {
+        'missing' => { 'start_room' => 9999, 'end_room' => 20, 'str_proc' => 'go north' }
+      }
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = nil
+
+      expect { test_class.apply_wayto_overrides }.not_to raise_error
+    end
+
+    it 'merges personal_map_targets into GameSettings custom targets' do
+      settings.base_wayto_overrides = nil
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = { 'my_spot' => 10 }
+
+      test_class.apply_wayto_overrides
+      expect(GameSettings['custom targets']).to eq({ 'my_spot' => 10 })
+    end
+
+    it 'merges personal_map_targets with existing custom targets' do
+      GameSettings['custom targets'] = { 'bank' => 20 }
+      settings.base_wayto_overrides = nil
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = { 'my_spot' => 10 }
+
+      test_class.apply_wayto_overrides
+      expect(GameSettings['custom targets']).to eq({ 'bank' => 20, 'my_spot' => 10 })
+    end
+
+    it 'skips personal_map_targets when not a hash' do
+      settings.base_wayto_overrides = nil
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = 'not a hash'
+
+      expect { test_class.apply_wayto_overrides }.not_to raise_error
+      expect(GameSettings['custom targets']).to be_nil
+    end
+
+    it 'skips personal_map_targets when nil' do
+      settings.base_wayto_overrides = nil
+      settings.personal_wayto_overrides = nil
+      settings.personal_map_targets = nil
+
+      expect { test_class.apply_wayto_overrides }.not_to raise_error
     end
   end
 end

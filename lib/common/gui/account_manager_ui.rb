@@ -680,7 +680,7 @@ module Lich
           # Check encryption mode and keychain availability
           has_keychain = MasterPasswordManager.keychain_available?
           mode = nil
-          yaml_file = YamlState.yaml_file_path(@data_dir)
+          yaml_file = Lich::Common::Authentication::EntryStore.yaml_file_path(@data_dir)
 
           if File.exist?(yaml_file)
             begin
@@ -902,7 +902,9 @@ module Lich
 
                   # Toggle favorite status with frontend precision
                   new_status = FavoritesManager.toggle_favorite(data_dir, account, character, game_code, frontend)
+                  # rubocop:disable Custom/AsciiOnlySource -- GTK displays Unicode favorite markers correctly.
                   iter[5] = new_status ? '★' : '☆'
+                  # rubocop:enable Custom/AsciiOnlySource
 
                   # Notify other tabs of data change
                   notify_data_changed(:favorite_toggled, {
@@ -923,7 +925,7 @@ module Lich
         # @param username [String] Account username to check
         # @return [Boolean] True if account exists
         def account_already_exists?(username)
-          yaml_file = Lich::Common::GUI::YamlState.yaml_file_path(@data_dir)
+          yaml_file = Lich::Common::Authentication::EntryStore.yaml_file_path(@data_dir)
           return false unless File.exist?(yaml_file)
 
           begin
@@ -1208,7 +1210,9 @@ module Lich
 
               # Add favorites information with frontend precision
               is_favorite = FavoritesManager.is_favorite?(@data_dir, account, character[:char_name], character[:game_code], character[:frontend])
+              # rubocop:disable Custom/AsciiOnlySource -- GTK displays Unicode favorite markers correctly.
               char_iter[5] = is_favorite ? '★' : '☆'
+              # rubocop:enable Custom/AsciiOnlySource
             end
           end
         end
@@ -1248,7 +1252,7 @@ module Lich
           end
 
           # Check YAML file and encryption mode
-          yaml_file = YamlState.yaml_file_path(@data_dir)
+          yaml_file = Lich::Common::Authentication::EntryStore.yaml_file_path(@data_dir)
           unless File.exist?(yaml_file)
             button.visible = false
             button.sensitive = false
@@ -1283,7 +1287,7 @@ module Lich
           @change_encryption_mode_button.visible = true
 
           # Check if YAML file exists with accounts
-          yaml_file = YamlState.yaml_file_path(@data_dir)
+          yaml_file = Lich::Common::Authentication::EntryStore.yaml_file_path(@data_dir)
           unless File.exist?(yaml_file)
             @change_encryption_mode_button.sensitive = false
             return

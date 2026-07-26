@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative '../gui/yaml_state'
+require_relative '../authentication/entry_store'
 require_relative '../gui/master_password_manager'
-require_relative 'cli_password_manager'
+require_relative '../authentication/cli_password'
 
 module Lich
   module Common
     module CLI
       # Handles encryption mode changes via CLI
-      # Manages prompting for passwords and calls YamlState domain logic
+      # Manages prompting for passwords and calls EntryStore domain logic
       module EncryptionModeChange
         # Change encryption mode for all accounts
         #
@@ -17,7 +17,7 @@ module Lich
         # @return [Integer] Exit code (0=success, 1=error, 2=not found, 3=invalid mode, 4=cancelled)
         def self.change_mode(new_mode, provided_password = nil)
           data_dir = DATA_DIR
-          yaml_file = Lich::Common::GUI::YamlState.yaml_file_path(data_dir)
+          yaml_file = Lich::Common::Authentication::EntryStore.yaml_file_path(data_dir)
 
           # Validate file exists
           unless File.exist?(yaml_file)
@@ -53,7 +53,7 @@ module Lich
             return 0
           end
 
-          puts "Changing encryption mode: #{current_mode} → #{new_mode}"
+          puts "Changing encryption mode: #{current_mode} -> #{new_mode}"
           puts "Accounts to re-encrypt: #{account_count}"
           puts ""
 
@@ -63,7 +63,7 @@ module Lich
           # If leaving Enhanced mode, validate current password
           if current_mode == :enhanced
             puts "Current mode is Enhanced encryption."
-            master_password = PasswordManager.prompt_for_master_password
+            master_password = Lich::Common::Authentication::CLIPassword.prompt_for_master_password
             if master_password.nil?
               puts "Cancelled"
               Lich.log "info: CLI encryption mode change cancelled by user"
@@ -80,7 +80,7 @@ module Lich
               return 1
             end
 
-            puts "✓ Master password validated"
+            puts "ok: Master password validated"
             puts ""
           end
 
@@ -89,7 +89,7 @@ module Lich
             new_master_password = if provided_password
                                     provided_password
                                   else
-                                    PasswordManager.get_master_password_from_keychain_or_prompt
+                                    Lich::Common::Authentication::CLIPassword.get_master_password_from_keychain_or_prompt
                                   end
 
             if new_master_password.nil?
@@ -98,13 +98,13 @@ module Lich
               return 4
             end
 
-            puts "✓ Master password accepted"
+            puts "ok: Master password accepted"
             puts ""
           end
 
           # Warn about plaintext mode
           if new_mode == :plaintext
-            puts "⚠️  WARNING: Plaintext mode disables encryption"
+            puts "warning: Plaintext mode disables encryption"
             puts "Passwords will be stored unencrypted and visible in the file."
             puts ""
             print "Continue? (yes/no): "
@@ -118,7 +118,7 @@ module Lich
           end
 
           # Call domain method to perform the change
-          success = Lich::Common::GUI::YamlState.change_encryption_mode(
+          success = Lich::Common::Authentication::EntryStore.change_encryption_mode(
             data_dir,
             new_mode,
             new_master_password
@@ -130,10 +130,10 @@ module Lich
             return 1
           end
 
-          puts "✓ Encryption mode changed: #{current_mode} → #{new_mode}"
-          puts "✓ #{account_count} accounts re-encrypted" if account_count > 0
+          puts "ok: Encryption mode changed: #{current_mode} -> #{new_mode}"
+          puts "ok: #{account_count} accounts re-encrypted" if account_count > 0
 
-          Lich.log "info: CLI encryption mode change successful: #{current_mode} → #{new_mode}"
+          Lich.log "info: CLI encryption mode change successful: #{current_mode} -> #{new_mode}"
           0
         rescue StandardError => e
           puts "error: Unexpected error during encryption mode change: #{e.message}"

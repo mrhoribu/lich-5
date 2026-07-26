@@ -6,6 +6,8 @@
 
 module Lich
   module Common
+    CORE_MAP_OVERRIDES = true
+
     # MinHeap for efficient Dijkstra priority queue
     # Extracted to be shared across all game implementations
     class MinHeap
@@ -149,7 +151,7 @@ module Lich
         # Convert map to JSON
         def to_json(*args)
           list.delete_if(&:nil?)
-          list.to_json(args)
+          list.sort_by(&:id).to_json(args)
         end
 
         # Save map as JSON file
@@ -217,6 +219,45 @@ module Lich
             false
           end
         end
+
+        # Applies personal map wayto overrides and custom targets from YAML settings.
+        # Reads base_wayto_overrides, personal_wayto_overrides, and personal_map_targets
+        # from the user's profile via get_settings. Ensures the map is loaded before
+        # accessing room data, consistent with other ClassMethods.
+        #
+        # @return [void]
+        def apply_wayto_overrides
+          self.load unless loaded?
+          settings = get_settings
+          base_overrides = settings.base_wayto_overrides || {}
+          personal_overrides = settings.personal_wayto_overrides || {}
+          wayto_overrides = base_overrides.merge(personal_overrides)
+
+          wayto_overrides.each do |_key, values|
+            next unless values.is_a?(Hash) && values['start_room'] && values['end_room']
+
+            start_room_id = values['start_room'].to_i
+            end_room_id = values['end_room'].to_s
+            start_room = list[start_room_id]
+            next unless start_room
+
+            if values['str_proc']
+              start_room.wayto[end_room_id] = StringProc.new(values['str_proc'].to_s)
+            end
+            if values['travel_time']
+              new_timeto = Float(values['travel_time'], exception: false)
+              new_timeto ||= StringProc.new(values['travel_time'].to_s)
+              start_room.timeto[end_room_id] = new_timeto
+            end
+          end
+
+          personal_map_targets = settings.personal_map_targets
+          if personal_map_targets.is_a?(Hash)
+            custom_targets = (GameSettings['custom targets'] || {})
+            custom_targets.merge!(personal_map_targets)
+            GameSettings['custom targets'] = custom_targets
+          end
+        end
       end
 
       # Instance methods for Room/Map objects
@@ -250,6 +291,12 @@ module Lich
           end.join("\n")
         end
 
+        # Override in subclasses to add game-specific fields to JSON output.
+        # Must return a Hash. Nil/empty values are filtered automatically.
+        def json_extra_fields
+          {}
+        end
+
         # Convert room to JSON
         def to_json(*_args)
           mapjson = {
@@ -260,15 +307,17 @@ module Lich
             location: @location,
             climate: @climate,
             terrain: @terrain,
-            wayto: @wayto,
-            timeto: @timeto,
+            wayto: @wayto&.sort_by { |k, _v| k.to_i }&.to_h,
+            timeto: @timeto&.sort_by { |k, _v| k.to_i }&.to_h,
             image: @image,
             image_coords: @image_coords,
-            tags: @tags,
+            tags: @tags&.sort_by { |tag| [tag.downcase, tag] },
             check_location: @check_location,
             unique_loot: @unique_loot,
             uid: @uid
-          }.delete_if { |_a, b| b.nil? || (b.is_a?(Array) && b.empty?) }
+          }
+          mapjson.merge!(json_extra_fields)
+          mapjson.delete_if { |_a, b| b.nil? || (b.is_a?(Array) && b.empty?) }
           JSON.pretty_generate(mapjson)
         end
 

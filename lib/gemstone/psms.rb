@@ -34,6 +34,7 @@ require_relative('./psms/shield.rb')
 require_relative('./psms/weapon.rb')
 require_relative('./psms/warcry.rb')
 require_relative('./psms/ascension.rb')
+require_relative('./psms/qstrike.rb')
 
 module Lich
   module Gemstone
@@ -163,10 +164,10 @@ module Lich
       # allowed based on the character's Multi-Opponent Combat (MOC) training.
       #
       # The number of forcert rounds scales with ranks in MOC as follows:
-      #   - 0–9 ranks:     0 forcert rounds
-      #   - 10–34 ranks:   1 forcert round
-      #   - 35–74 ranks:   2 forcert rounds
-      #   - 75–124 ranks:  3 forcert rounds
+      #   - 0-9 ranks:     0 forcert rounds
+      #   - 10-34 ranks:   1 forcert round
+      #   - 35-74 ranks:   2 forcert rounds
+      #   - 75-124 ranks:  3 forcert rounds
       #   - 125+ ranks:    4 forcert rounds
       #
       # @return [Integer] The maximum number of forcert rounds the character can perform.
@@ -214,6 +215,8 @@ module Lich
         /^But your hands are full\!$/,
         /^You are still stunned\.$/,
         /^You lack the momentum to attempt another skill\.$/,
+        /^You can't reach .+!$/,
+        / attempting to .+ would be a rather awkward proposition\.$/,
       )
     end
   end

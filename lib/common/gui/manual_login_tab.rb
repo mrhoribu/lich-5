@@ -78,7 +78,7 @@ module Lich
         def refresh_entry_data
           begin
             # Reload data from YAML file using consistent autosort state
-            @entry_data = Lich::Common::GUI::YamlState.load_saved_entries(@data_dir, @autosort_state)
+            @entry_data = Lich::Common::Authentication::EntryStore.load_saved_entries(@data_dir, @autosort_state)
           rescue StandardError => e
             Lich.log "error: Failed to refresh entry data in ManualLoginTab: #{e.message}"
             # Fallback to empty array to prevent crashes
@@ -171,7 +171,9 @@ module Lich
           @make_quick_option = Gtk::CheckButton.new('Save this info for quick game entry')
 
           # Create favorites option
+          # rubocop:disable Custom/AsciiOnlySource -- GTK displays Unicode favorite markers correctly.
           @make_favorite_option = Gtk::CheckButton.new('★ Mark as favorite')
+          # rubocop:enable Custom/AsciiOnlySource
           @make_favorite_option.set_tooltip_text('Mark this character as a favorite for quick access')
 
           # Create play button
@@ -386,16 +388,17 @@ module Lich
                   password: pass_entry.text,
                   legacy: true
                 )
+              rescue Authentication::FatalAuthError, StandardError => e
+                liststore.clear
+                report_connect_error(e.message, connect_button, disconnect_button, user_id_entry, pass_entry)
+                next true
               end
               if login_info.to_s =~ /error/i
-                # Call the error callback if provided
-                if @callbacks.on_error
-                  @callbacks.on_error.call("\nSomething went wrong... probably invalid user ID or password.\n\nserver response: #{login_info}")
-                end
-                connect_button.sensitive = true
-                disconnect_button.sensitive = false
-                user_id_entry.sensitive = true
-                pass_entry.sensitive = true
+                liststore.clear
+                report_connect_error(
+                  "\nSomething went wrong... probably invalid user ID or password.\n\nserver response: #{login_info}",
+                  connect_button, disconnect_button, user_id_entry, pass_entry
+                )
               else
                 # Populate character list
                 liststore.clear
@@ -502,7 +505,7 @@ module Lich
                 game_code: selected_iter[0]
               )
 
-              launch_data = Authentication.prepare_launch_data(
+              launch_data = Authentication::LaunchData.prepare(
                 launch_data_hash,
                 frontend,
                 custom_launch,
@@ -548,21 +551,21 @@ module Lich
                     existing_entry[:custom_launch_dir] = entry_data[:custom_launch_dir]
                     @save_entry_data = true
 
-                    save_success = Lich::Common::GUI::YamlState.save_entries(@data_dir, @entry_data)
+                    save_success = Lich::Common::Authentication::EntryStore.save_entries(@data_dir, @entry_data)
                   end
                 else
                   @entry_data.push entry_data
                   @save_entry_data = true
 
                   # Trigger save through main GUI's save mechanism with synchronization
-                  save_success = Lich::Common::GUI::YamlState.save_entries(@data_dir, @entry_data)
+                  save_success = Lich::Common::Authentication::EntryStore.save_entries(@data_dir, @entry_data)
                 end
 
                 if save_success
                   # Reset save flag to prevent duplicate save on window destruction
                   @save_entry_data = false
                   # Refresh local cache with normalized data after successful save
-                  @entry_data = Lich::Common::GUI::YamlState.load_saved_entries(@data_dir, @autosort_state)
+                  @entry_data = Lich::Common::Authentication::EntryStore.load_saved_entries(@data_dir, @autosort_state)
                   # Trigger main GUI cache refresh only once after successful save
                   @callbacks.on_save.call(entry_data) if @callbacks.on_save
                 else
@@ -580,7 +583,7 @@ module Lich
                   if favorite_success
                     # Single optimized cache refresh after favorite marking
                     # This replaces multiple redundant refresh operations
-                    @entry_data = Lich::Common::GUI::YamlState.load_saved_entries(@data_dir, @autosort_state)
+                    @entry_data = Lich::Common::Authentication::EntryStore.load_saved_entries(@data_dir, @autosort_state)
 
                     # Critical: Trigger on_save callback again to refresh main GUI cache with favorite data
                     # This ensures the main GUI cache contains the updated favorite information
@@ -619,8 +622,19 @@ module Lich
 
               # Call the play callback if provided
               if @callbacks.on_play
+                play_context = {
+                  char_name: normalized_character,
+                  game_code: selected_iter[0],
+                  frontend: frontend,
+                  custom_launch: custom_launch
+                }
 
-                @callbacks.on_play.call(launch_data) # (login_params)
+                # Backward compatibility: support both 1-arg and 2-arg callback handlers.
+                if @callbacks.on_play.respond_to?(:arity) && @callbacks.on_play.arity == 1
+                  @callbacks.on_play.call(launch_data)
+                else
+                  @callbacks.on_play.call(launch_data, play_context)
+                end
               end
 
             end
@@ -653,6 +667,25 @@ module Lich
               false
             end
           }
+        end
+
+        # Reports an authentication error and resets the login form to an editable state.
+        # Delegates error presentation to {Authentication::GUI.show_error_dialog} so that
+        # manual-login and saved-login tabs display identical error dialogs.
+        #
+        # @param message [String] Error message to display as dialog secondary text
+        # @param connect_button [Gtk::Button] Connect button to re-enable and used as
+        #   dialog parent anchor via +toplevel+
+        # @param disconnect_button [Gtk::Button] Disconnect button to disable
+        # @param user_id_entry [Gtk::Entry] User ID entry to re-enable
+        # @param pass_entry [Gtk::Entry] Password entry to re-enable
+        # @return [void]
+        def report_connect_error(message, connect_button, disconnect_button, user_id_entry, pass_entry)
+          connect_button.sensitive = true
+          disconnect_button.sensitive = false
+          user_id_entry.sensitive = true
+          pass_entry.sensitive = true
+          Authentication::GUI.show_error_dialog(connect_button, message)
         end
       end
     end

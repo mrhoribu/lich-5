@@ -1,0 +1,331 @@
+# frozen_string_literal: true
+
+require 'rspec'
+require 'tmpdir'
+require 'yaml'
+require 'fileutils'
+
+# Load login_spec_helper FIRST - it sets up Lich::Util and other mocks
+# before any source files are required
+require_relative '../../../login_spec_helper'
+
+# Now require the source file (after mocks are in place)
+require_relative '../../../../lib/common/authentication/cli'
+
+# Extend mocks with additional methods needed for CLI tests
+module Lich
+  module Common
+    module Authentication
+      module CLIPassword
+        def self.validate_master_password_available(**)
+          true
+        end
+      end unless defined?(Lich::Common::Authentication::CLIPassword)
+
+      module LoginHelpers
+        class << self
+          def symbolize_keys(hash)
+            hash
+          end
+
+          def find_character_by_name_game_and_frontend(*_args)
+            []
+          end
+
+          def select_best_fit(*_args)
+            nil
+          end
+        end
+      end unless defined?(Lich::Common::Authentication::LoginHelpers)
+
+      module LaunchData
+        def self.prepare(*_args)
+          ['GAME=GS3']
+        end
+      end unless defined?(Lich::Common::Authentication::LaunchData)
+    end
+  end
+end
+
+RSpec.describe Lich::Common::Authentication::CLI do
+  let(:data_dir) { Dir.mktmpdir }
+  let(:yaml_file) { File.join(data_dir, 'entry.yaml') }
+
+  after do
+    FileUtils.rm_rf(data_dir) if File.exist?(data_dir)
+  end
+
+  describe '.execute_new_character' do
+    before do
+      allow(Lich).to receive(:log)
+      allow(Lich::Common::Authentication::CLIPassword).to receive(:validate_master_password_available).and_return(true)
+    end
+
+    context 'with missing account name' do
+      it 'returns nil when account_name is nil' do
+        result = described_class.execute_new_character(nil, game_code: 'DR', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/Account name is required/)
+      end
+
+      it 'returns nil when account_name is empty' do
+        result = described_class.execute_new_character('', game_code: 'DR', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/Account name is required/)
+      end
+    end
+
+    context 'with missing or invalid game code' do
+      it 'returns nil when game_code is nil' do
+        result = described_class.execute_new_character('TESTUSER', game_code: nil, data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/valid game code is required/i)
+      end
+
+      it 'returns nil when game_code is the :__unset sentinel' do
+        result = described_class.execute_new_character('TESTUSER', game_code: :__unset, data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/valid game code is required/i)
+      end
+
+      it 'returns nil when game_code is not a known game code' do
+        result = described_class.execute_new_character('TESTUSER', game_code: 'BOGUS', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/valid game code is required/i)
+      end
+    end
+
+    context 'with missing YAML file' do
+      it 'returns nil when entry.yaml does not exist' do
+        result = described_class.execute_new_character('TESTUSER', game_code: 'DR', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/No saved entries YAML file found/)
+      end
+    end
+
+    context 'with valid YAML file' do
+      let(:yaml_data) do
+        {
+          'accounts'        => {
+            'TESTUSER' => {
+              'password'   => 'testpass',
+              'characters' => [
+                { 'char_name' => 'ExistingChar', 'game_code' => 'DR', 'frontend' => 'profanity' }
+              ]
+            }
+          },
+          'encryption_mode' => 'plaintext'
+        }
+      end
+
+      before do
+        File.write(yaml_file, yaml_data.to_yaml)
+      end
+
+      it 'returns nil when account is not found' do
+        result = described_class.execute_new_character('NONEXISTENT', game_code: 'DR', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/Account not found/)
+      end
+
+      it 'finds account case-insensitively and authenticates with the canonical account key' do
+        allow(Lich::Common::Authentication::EntryStore).to receive(:decrypt_password).and_return('testpass')
+        allow(Lich::Common::Authentication::LaunchData).to receive(:prepare).and_return(['GAME=DR'])
+
+        # Looked up with lower-case 'testuser' but the stored key is 'TESTUSER';
+        # authentication must use the canonical 'TESTUSER'.
+        expect(Lich::Common::Authentication).to receive(:authenticate).with(
+          account: 'TESTUSER',
+          password: 'testpass',
+          character: 'NEW',
+          game_code: 'DR',
+          generator: true
+        ).and_return({ 'key' => 'abc' })
+
+        result = described_class.execute_new_character('testuser', game_code: 'DR', data_dir: data_dir)
+
+        expect(result).to eq(['GAME=DR'])
+      end
+
+      it 'authenticates with explicit generator intent' do
+        allow(Lich::Common::Authentication::EntryStore).to receive(:decrypt_password).and_return('testpass')
+        allow(Lich::Common::Authentication::LaunchData).to receive(:prepare).and_return(['GAME=DR'])
+
+        expect(Lich::Common::Authentication).to receive(:authenticate).with(
+          account: 'TESTUSER',
+          password: 'testpass',
+          character: 'NEW',
+          game_code: 'DR',
+          generator: true
+        ).and_return({ 'key' => 'abc' })
+
+        described_class.execute_new_character('TESTUSER', game_code: 'DR', data_dir: data_dir)
+      end
+
+      it 'forwards the requested frontend and custom launch to LaunchData' do
+        allow(Lich::Common::Authentication::EntryStore).to receive(:decrypt_password).and_return('testpass')
+        allow(Lich::Common::Authentication).to receive(:authenticate).and_return({ 'key' => 'abc' })
+
+        expect(Lich::Common::Authentication::LaunchData).to receive(:prepare).with(
+          { 'key' => 'abc' }, 'wizard', 'warlock', nil
+        ).and_return(['GAME=WIZ'])
+
+        result = described_class.execute_new_character(
+          'TESTUSER', game_code: 'DR', frontend: 'wizard', custom_launch: 'warlock', data_dir: data_dir
+        )
+
+        expect(result).to eq(['GAME=WIZ'])
+      end
+
+      it 'defaults frontend to profanity and drops unset custom launch' do
+        allow(Lich::Common::Authentication::EntryStore).to receive(:decrypt_password).and_return('testpass')
+        allow(Lich::Common::Authentication).to receive(:authenticate).and_return({ 'key' => 'abc' })
+
+        expect(Lich::Common::Authentication::LaunchData).to receive(:prepare).with(
+          { 'key' => 'abc' }, 'profanity', nil, nil
+        ).and_return(['GAME=DR'])
+
+        described_class.execute_new_character(
+          'TESTUSER', game_code: 'DR', frontend: :__unset, custom_launch: :__unset, data_dir: data_dir
+        )
+      end
+    end
+
+    context 'with account missing password' do
+      before do
+        yaml_data = {
+          'accounts' => {
+            'NOPASS' => {
+              'characters' => []
+            }
+          }
+        }
+        File.write(yaml_file, yaml_data.to_yaml)
+      end
+
+      it 'returns nil and logs error' do
+        result = described_class.execute_new_character('NOPASS', game_code: 'DR', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/No password saved/)
+      end
+    end
+
+    context 'with legacy array-format entry.yaml' do
+      before do
+        # Legacy installs store a top-level array of character entries rather
+        # than the accounts-based Hash; generator entry has no account to look up.
+        legacy_data = [
+          { 'char_name' => 'ExistingChar', 'game_code' => 'DR', 'frontend' => 'profanity' }
+        ]
+        File.write(yaml_file, legacy_data.to_yaml)
+      end
+
+      it 'fails gracefully instead of raising on the non-Hash entry data' do
+        result = nil
+        expect { result = described_class.execute_new_character('TESTUSER', game_code: 'DR', data_dir: data_dir) }
+          .not_to raise_error
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/accounts-based entry format/)
+      end
+    end
+  end
+
+  describe '.execute' do
+    context 'with missing character name' do
+      it 'returns nil when character_name is nil' do
+        allow(Lich).to receive(:log)
+
+        result = described_class.execute(nil, data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/Character name is required/)
+      end
+
+      it 'returns nil when character_name is empty' do
+        allow(Lich).to receive(:log)
+
+        result = described_class.execute('', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/Character name is required/)
+      end
+    end
+
+    context 'with missing YAML file' do
+      it 'returns nil when entry.yaml does not exist' do
+        allow(Lich).to receive(:log)
+        allow(Lich::Common::Authentication::CLIPassword).to receive(:validate_master_password_available).and_return(true)
+
+        result = described_class.execute('TestChar', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/No saved entries YAML file found/)
+      end
+    end
+
+    context 'with master password validation failure' do
+      it 'returns nil when master password validation fails' do
+        allow(Lich).to receive(:log)
+        allow(Lich::Common::Authentication::CLIPassword).to receive(:validate_master_password_available).and_return(false)
+
+        result = described_class.execute('TestChar', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/Master password validation failed/)
+      end
+    end
+
+    context 'with valid YAML file' do
+      before do
+        yaml_data = {
+          'accounts' => {
+            'TESTUSER' => {
+              'password'   => 'testpass',
+              'characters' => [
+                { 'char_name' => 'TestChar', 'game_code' => 'GS3', 'frontend' => 'stormfront' }
+              ]
+            }
+          }
+        }
+        File.write(yaml_file, yaml_data.to_yaml)
+      end
+
+      it 'returns nil when no matching character is found' do
+        allow(Lich).to receive(:log)
+        allow(Lich::Common::Authentication::CLIPassword).to receive(:validate_master_password_available).and_return(true)
+        allow(Lich::Common::Authentication::LoginHelpers).to receive(:symbolize_keys).and_return({})
+        allow(Lich::Common::Authentication::LoginHelpers).to receive(:find_character_by_name_game_and_frontend).and_return([])
+
+        result = described_class.execute('NonExistent', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/No matching character found/)
+      end
+    end
+
+    context 'with YAML load error' do
+      before do
+        File.write(yaml_file, "invalid: yaml: content: [")
+      end
+
+      it 'returns nil and logs error' do
+        allow(Lich).to receive(:log)
+        allow(Lich::Common::Authentication::CLIPassword).to receive(:validate_master_password_available).and_return(true)
+
+        result = described_class.execute('TestChar', data_dir: data_dir)
+
+        expect(result).to be_nil
+        expect(Lich).to have_received(:log).with(/Failed to load YAML data/)
+      end
+    end
+  end
+end

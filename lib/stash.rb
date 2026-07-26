@@ -43,7 +43,7 @@ module Lich
       bag = container(bag)
       try_or_fail(command: "_drag ##{item.id} ##{bag.id}") do |result|
         # Check for vapor message first (bandolier)
-        if result =~ /As you drop .+ it dissolves into vapor\./
+        if result.is_a?(String) && result =~ /As you drop .+ it dissolves into vapor\./
           @bandolier_weapon[item.name] = "unknown"
           return true
         end
@@ -65,7 +65,7 @@ module Lich
           return true if (![GameObj.right_hand, GameObj.left_hand].map(&:id).compact.include?(item.id) && GameObj.inv.to_a.map(&:id).include?(item.id))
           return true if item.name =~ /^ethereal \w+$/ && ![GameObj.right_hand, GameObj.left_hand].map(&:id).compact.include?(item.id)
           sleep 0.1
-        } unless result =~ /You can only wear two items in that location\./
+        } unless result.is_a?(String) && result =~ /You can only wear two items in that location\./
 
         return @worn_items[item.name] = false
       end
@@ -133,6 +133,10 @@ module Lich
       unless ReadyList.valid?
         ReadyList.check(silent: true, quiet: true)
       end
+      # extending to use default stow container wherever possible
+      unless StowList.valid?
+        StowList.check(silent: true, quiet: true)
+      end
       if ReadyList.sheath
         unless ReadyList.secondary_sheath
           sheath = second_sheath = ReadyList.sheath
@@ -192,7 +196,11 @@ module Lich
               dothistimeout 'swap', 3, /^You don't have anything to swap!|^You swap/
             end
           }
-          if !second_sheath.nil? && GameObj.left_hand.type =~ /weapon/
+          if (ready_item = ReadyList.ready_list.find { |_k, v| v.id.eql?(GameObj.left_hand.id) }) && ReadyList.store_list[ready_item[0]]
+            result = Lich::Stash.add_to_bag(sheath, GameObj.left_hand) if ReadyList.store_list[ready_item[0]].eql?("put in sheath")
+            result = Lich::Stash.add_to_bag(second_sheath, GameObj.left_hand) if ReadyList.store_list[ready_item[0]].eql?("put in secondary sheath")
+            result = Lich::Stash.add_to_bag(StowList.default, GameObj.left_hand) if ["worn if possible, stowed otherwise", "stowed"].include?(ReadyList.store_list[ready_item[0]])
+          elsif !second_sheath.nil? && GameObj.left_hand.type =~ /weapon/
             result = Lich::Stash.add_to_bag(second_sheath, GameObj.left_hand)
           elsif weaponsack && GameObj.left_hand.type =~ /weapon/
             result = Lich::Stash::add_to_bag(weaponsack, GameObj.left_hand)
@@ -227,8 +235,11 @@ module Lich
             dothistimeout 'swap', 3, /^You don't have anything to swap!|^You swap/
           end
         }
-
-        if !sheath.nil? && GameObj.right_hand.type =~ /weapon/
+        if (ready_item = ReadyList.ready_list.find { |_k, v| v.id.eql?(GameObj.right_hand.id) }) && ReadyList.store_list[ready_item[0]]
+          result = Lich::Stash.add_to_bag(sheath, GameObj.right_hand) if ReadyList.store_list[ready_item[0]].eql?("put in sheath")
+          result = Lich::Stash.add_to_bag(second_sheath, GameObj.right_hand) if ReadyList.store_list[ready_item[0]].eql?("put in secondary sheath")
+          result = Lich::Stash.add_to_bag(StowList.default, GameObj.right_hand) if ["worn if possible, stowed otherwise", "stowed"].include?(ReadyList.store_list[ready_item[0]])
+        elsif !sheath.nil? && GameObj.right_hand.type =~ /weapon/
           result = Lich::Stash.add_to_bag(sheath, GameObj.right_hand)
         elsif weaponsack && GameObj.right_hand.type =~ /weapon/
           result = Lich::Stash::add_to_bag(weaponsack, GameObj.right_hand)

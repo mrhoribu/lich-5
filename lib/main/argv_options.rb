@@ -2,16 +2,20 @@
 
 # CLI argument processing and orchestration (Layer 2)
 # Three-layer architecture:
-#   - Layer 1 (Opts): Pure parsing of ARGV → frozen OpenStruct
+#   - Layer 1 (Opts): Pure parsing of ARGV -> frozen OpenStruct
 #   - Layer 2 (this file): Validation, routing to handlers, side effects
 #   - Layer 3 (CliPasswordManager): Domain-specific handlers
 
 require File.join(LIB_DIR, 'util', 'opts.rb')
 require File.join(LIB_DIR, 'common', 'cli', 'cli_orchestration.rb')
+require File.join(LIB_DIR, 'common', 'bind_host_resolver.rb')
+require File.join(LIB_DIR, 'main', 'arg_normalization.rb')
+require File.join(LIB_DIR, 'main', 'detachable_client_target.rb')
+require File.join(LIB_DIR, 'main', 'help_text.rb')
 
 module Lich
   module Main
-    # Orchestrates ARGV processing: parsing → validation → handler execution → side effects
+    # Orchestrates ARGV processing: parsing -> validation -> handler execution -> side effects
     module ArgvOptions
       # CLI operations are now handled by lib/common/cli/cli_orchestration.rb
       # which handles early-exit operations (password mgmt, conversion)
@@ -25,8 +29,8 @@ module Lich
 
           ARGV.each do |arg|
             case arg
-            when '-h', '--help'
-              print_help
+            when '-h', '--help', /^--help=.+$/
+              print_help(HelpText.topic_from_argv(ARGV, arg))
               exit
             when '-v', '--version'
               print_version
@@ -73,9 +77,11 @@ module Lich
               @argv_options[:reconnect_delay] = $1
             when /^--host=(.+):(.+)$/
               @argv_options[:host] = { domain: $1, port: $2.to_i }
+            when /^--bind-address=(.+)$/i
+              @argv_options[:bind_address] = $1
             when /^--hosts-file=(.+)$/i
               @argv_options[:hosts_file] = $1
-            when /^--no-gui$/i
+            when /^--no-(?:gui|gtk)$/i
               @argv_options[:gui] = false
             when /^--gui$/i
               @argv_options[:gui] = true
@@ -93,6 +99,8 @@ module Lich
               @argv_options[:frontend_command] = $1
             when /^--save$/i
               @argv_options[:save] = true
+            when /^--pipe$/i
+              @argv_options[:pipe] = true
             when /^--wine(?:\-prefix)?=.+$/i
               nil # already used when defining the Wine module
             when /\.sal$|Gse\.~xt$/i
@@ -100,6 +108,8 @@ module Lich
               bad_args.clear
             when /^--dark-mode=(true|false|on|off)$/i
               handle_dark_mode($1)
+            when /^--saga$/i
+              $frontend = 'saga'
             else
               bad_args.push(arg)
             end
@@ -119,94 +129,16 @@ module Lich
         end
 
         def self.handle_dark_mode(value)
-          @argv_options[:dark_mode] = value =~ /^(true|on)$/i
+          # Regex returns Integer/nil; force strict boolean for persisted settings.
+          @argv_options[:dark_mode] = !!(value =~ /^(true|on)$/i)
           if defined?(Gtk)
             @theme_state = Lich.track_dark_mode = @argv_options[:dark_mode]
             Gtk::Settings.default.gtk_application_prefer_dark_theme = true if @theme_state == true
           end
         end
 
-        def self.print_help
-          puts 'Usage:  lich [OPTION]'
-          puts 'General Options:'
-          puts '  -h,   --help            Display this list.'
-          puts '  -v,   --version         Display the program version number and credits.'
-          puts '  -d,   --directory       Set the main Lich program directory.'
-          puts '        --script-dir      Set the directory where Lich looks for scripts.'
-          puts '        --data-dir        Set the directory where Lich will store script data.'
-          puts '        --temp-dir        Set the directory where Lich will store temporary files.'
-          puts '        --hosts-dir       Set the directory containing game server host definitions.'
-          puts '        --hosts-file      Set the hosts file to use for host name resolution.'
-          puts '  -w,   --wizard          Run in Wizard mode (default).'
-          puts '  -s,   --stormfront      Run in StormFront mode.'
-          puts '        --avalon          Run in Avalon mode.'
-          puts '        --frostbite       Run in Frostbite mode.'
-          puts '        --gui             Enable GUI (default).'
-          puts '        --no-gui          Run without GUI (headless mode).'
-          puts '        --dark-mode       Enable/disable dark mode (true|false|on|off). See example below.'
-          puts '        --gemstone, --gs  Connect to the Gemstone IV Prime server (default).'
-          puts '        --shattered       Connect to the Gemstone IV Shattered server.'
-          puts '        --dragonrealms, --dr'
-          puts '                          Connect to the DragonRealms server.'
-          puts '        --fallen          Connect to the DragonRealms Fallen server.'
-          puts '        --platinum        Connect to the Gemstone IV/DragonRealms Platinum server.'
-          puts '        --test            Connect to the test instance of the selected game server.'
-          puts '  -g,   --game            Set the IP address and port of the game. See example below.'
-          puts ''
-          puts 'Login and Connection Options:'
-          puts '        --login           Login with the specified character name.'
-          puts '        --without-frontend Run without a frontend (headless mode).'
-          puts '        --detachable-client Enable detachable client mode on specified port or host:port.'
-          puts '        --reconnect       Automatically reconnect if connection is lost.'
-          puts '        --reconnect-delay Set delay (in seconds) before attempting reconnection.'
-          puts '        --start-scripts   Specify scripts to start after successful login.'
-          puts '        --save            Save login credentials after successful login.'
-          puts ''
-          puts 'Account and Password Options:'
-          puts '        --account         Specify game account name.'
-          puts '        --password        Specify game account password.'
-          puts '        --frontend        Specify frontend type (wizard, stormfront, avalon, genie, frostbite).'
-          puts ''
-          puts 'Encryption Management Options:'
-          puts '  -aa, --add-account    Add a new account with password. See example below.'
-          puts '  -cap, --change-account-password'
-          puts '                        Change password for specified account. See example below.'
-          puts '  -cmp, --change-master-password'
-          puts '                        Change the master password for Enhanced encryption mode.'
-          puts '  -rmp, --recover-master-password'
-          puts '                        Recover a lost master password (requires backup recovery).'
-          puts '        --convert-entries Convert existing account entries to specified encryption mode.'
-          puts '                        Usage: --convert-entries [plaintext|standard|enhanced]'
-          puts '  -cem, --change-encryption-mode'
-          puts '                        Change the global encryption mode for all accounts.'
-          puts '  -mp, --master-password'
-          puts '                        Specify master password for Enhanced mode operations.'
-          puts ''
-          puts 'Legacy Installation Options:'
-          puts '       --install         Configure Windows/WINE registry for SGE integration.'
-          puts '       --uninstall       Remove Lich from registry.'
-          puts '       --link-to-sge     Link Lich to Simutronics Game Entry.'
-          puts '       --unlink-from-sge Unlink Lich from Simutronics Game Entry.'
-          puts '       --link-to-sal     Link Lich to SAL (Simutronics Account Launcher).'
-          puts '       --unlink-from-sal Unlink Lich from SAL.'
-          puts ''
-          puts 'Examples:'
-          puts '  lich -w -d /usr/bin/lich/'
-          puts '       ... (run Lich in Wizard mode using the dir \'/usr/bin/lich/\' as the program\'s home)'
-          puts '  lich -g gs3.simutronics.net:4000'
-          puts '       ... (run Lich using the IP address \'gs3.simutronics.net\' and the port number \'4000\')'
-          puts '  lich --dragonrealms --test --genie'
-          puts '       ... (run Lich connected to DragonRealms Test server for the Genie frontend)'
-          puts '  lich --script-dir /mydir/scripts'
-          puts '       ... (run Lich with its script directory set to \'/mydir/scripts\')'
-          puts '  lich -aa MyAccount MyPassword --frontend stormfront'
-          puts '       ... (add a new account with StormFront frontend)'
-          puts '  lich -cap MyAccount NewPassword'
-          puts '       ... (change password for MyAccount to NewPassword)'
-          puts '  lich --convert-entries enhanced'
-          puts '       ... (convert all saved entries to Enhanced encryption mode with master password)'
-          puts '  lich --login MyCharName --no-gui --detachable-client=8000 --dark-mode=true'
-          puts '       ... (login without GUI in headless mode with detachable client on port 8000)'
+        def self.print_help(topic = nil)
+          puts HelpText.render(topic)
         end
 
         def self.print_version
@@ -248,12 +180,33 @@ module Lich
         end
 
         def self.handle_detachable_client(argv_options)
-          argv_options[:detachable_client_host] = '127.0.0.1'
+          argv_options[:detachable_client_host] = argv_options[:bind_address] || '127.0.0.1'
           argv_options[:detachable_client_port] = nil
-          if (arg = ARGV.find { |a| a =~ /^\-\-detachable\-client=[0-9]+$/ })
-            argv_options[:detachable_client_port] = /^\-\-detachable\-client=([0-9]+)$/.match(arg).captures.first.to_i
-          elsif (arg = ARGV.find { |a| a =~ /^\-\-detachable\-client=((?:\d{1,3}\.){3}\d{1,3}):([0-9]{1,5})$/ })
-            argv_options[:detachable_client_host], argv_options[:detachable_client_port] = /^\-\-detachable\-client=((?:\d{1,3}\.){3}\d{1,3}):([0-9]{1,5})$/.match(arg).captures
+          arg = ARGV.find { |a| a.start_with?('--detachable-client=') }
+          return unless arg
+
+          begin
+            target = DetachableClientTarget.parse(arg.split('=', 2).last)
+            if target.host
+              resolution = Lich::Common::BindHostResolver.resolve(target.host)
+              argv_options[:detachable_client_host] = resolution.host
+              if resolution.warning
+                $stdout.puts "warning: #{resolution.warning}"
+                Lich.log "warning: #{resolution.warning}"
+              end
+            else
+              # Port-only form inherits --bind-address; warn just like an explicit host would.
+              warning = Lich::Common::BindHostResolver.warning_for_explicit(argv_options[:detachable_client_host])
+              if warning
+                $stdout.puts "warning: #{warning}"
+                Lich.log "warning: #{warning}"
+              end
+            end
+            argv_options[:detachable_client_port] = target.port
+          rescue DetachableClientTarget::ParseError, Lich::Common::BindHostResolver::Error => e
+            $stdout.puts "error: #{e.message}"
+            Lich.log "error: #{e.message}"
+            exit 1
           end
         end
 
@@ -302,9 +255,9 @@ module Lich
             handle_shattered_connection(processed_options)
           elsif ARGV.include?('--fallen')
             handle_fallen_connection(processed_options)
-          elsif Lich::Util::LoginHelpers.gemstone_flag?(ARGV)
+          elsif Lich::Common::Authentication::LoginHelpers.gemstone_flag?(ARGV)
             handle_gemstone_connection(processed_options)
-          elsif Lich::Util::LoginHelpers.dragonrealms_flag?(ARGV)
+          elsif Lich::Common::Authentication::LoginHelpers.dragonrealms_flag?(ARGV)
             handle_dragonrealms_connection(processed_options)
           else
             processed_options[:game_host] = nil
@@ -319,7 +272,7 @@ module Lich
           processed_options[:game_port] = processed_options[:game_port].to_i
           $frontend = determine_frontend
           # Initialize frontend from parent process unless using detachable client
-          unless ARGV.any? { |a| a =~ /^--detachable-client/ }
+          unless ARGV.any? { |a| a =~ /^--detachable-client/i }
             Lich::Common::Frontend.init_from_parent(Process.ppid)
           end
         end
@@ -327,89 +280,89 @@ module Lich
         def self.handle_gemstone_connection(processed_options)
           if ARGV.include?('--platinum')
             $platinum = true
-            if ARGV.any? { |a| a == '-s' || a == '--stormfront' }
+            if ARGV.any? { |a| a =~ /^-s$/i || a =~ /^--stormfront$/i }
               processed_options[:game_host] = 'storm.gs4.game.play.net'
               processed_options[:game_port] = 10124
               $frontend = 'stormfront'
             else
               processed_options[:game_host] = 'storm.gs4.game.play.net'
               processed_options[:game_port] = 10124
-              $frontend = ARGV.any? { |a| a == '--avalon' } ? 'avalon' : 'wizard'
+              $frontend = ARGV.any? { |a| a =~ /^--avalon$/i } ? 'avalon' : ARGV.any? { |a| a =~ /^--frostbite$/i } ? 'frostbite' : ARGV.any? { |a| a =~ /^--saga$/i } ? 'saga' : 'wizard'
             end
           else
             $platinum = false
-            if ARGV.any? { |a| a == '-s' || a == '--stormfront' }
+            if ARGV.any? { |a| a =~ /^-s$/i || a =~ /^--stormfront$/i }
               processed_options[:game_host] = 'storm.gs4.game.play.net'
               processed_options[:game_port] = ARGV.include?('--test') ? 10624 : 10024
               $frontend = 'stormfront'
             else
               processed_options[:game_host] = 'storm.gs4.game.play.net'
               processed_options[:game_port] = ARGV.include?('--test') ? 10624 : 10024
-              $frontend = ARGV.any? { |a| a == '--avalon' } ? 'avalon' : 'wizard'
+              $frontend = ARGV.any? { |a| a =~ /^--avalon$/i } ? 'avalon' : ARGV.any? { |a| a =~ /^--frostbite$/i } ? 'frostbite' : ARGV.any? { |a| a =~ /^--saga$/i } ? 'saga' : 'wizard'
             end
           end
         end
 
         def self.handle_shattered_connection(processed_options)
           $platinum = false
-          if ARGV.any? { |a| a == '-s' || a == '--stormfront' }
+          if ARGV.any? { |a| a =~ /^-s$/i || a =~ /^--stormfront$/i }
             processed_options[:game_host] = 'storm.gs4.game.play.net'
             processed_options[:game_port] = 10324
             $frontend = 'stormfront'
           else
             processed_options[:game_host] = 'storm.gs4.game.play.net'
             processed_options[:game_port] = 10324
-            $frontend = ARGV.any? { |a| a == '--avalon' } ? 'avalon' : 'wizard'
+            $frontend = ARGV.any? { |a| a =~ /^--avalon$/i } ? 'avalon' : ARGV.any? { |a| a =~ /^--frostbite$/i } ? 'frostbite' : ARGV.any? { |a| a =~ /^--saga$/i } ? 'saga' : 'wizard'
           end
         end
 
         def self.handle_fallen_connection(processed_options)
           $platinum = false
-          if ARGV.any? { |a| a == '-s' || a == '--stormfront' }
+          if ARGV.any? { |a| a =~ /^-s$/i || a =~ /^--stormfront$/i }
             processed_options[:game_host] = 'dr.simutronics.net'
             processed_options[:game_port] = 11324
             $frontend = 'stormfront'
-          elsif ARGV.grep(/--genie/).any?
+          elsif ARGV.grep(/--genie/i).any?
             processed_options[:game_host] = 'dr.simutronics.net'
             processed_options[:game_port] = 11324
             $frontend = 'genie'
           else
             processed_options[:game_host] = 'dr.simutronics.net'
             processed_options[:game_port] = 11324
-            $frontend = ARGV.any? { |a| a == '--avalon' } ? 'avalon' : ARGV.any? { |a| a == '--frostbite' } ? 'frostbite' : 'wizard'
+            $frontend = ARGV.any? { |a| a =~ /^--avalon$/i } ? 'avalon' : ARGV.any? { |a| a =~ /^--frostbite$/i } ? 'frostbite' : ARGV.any? { |a| a =~ /^--saga$/i } ? 'saga' : 'wizard'
           end
         end
 
         def self.handle_dragonrealms_connection(processed_options)
           if ARGV.include?('--platinum')
             $platinum = true
-            if ARGV.any? { |a| a == '-s' || a == '--stormfront' }
+            if ARGV.any? { |a| a =~ /^-s$/i || a =~ /^--stormfront$/i }
               processed_options[:game_host] = 'dr.simutronics.net'
               processed_options[:game_port] = 11124
               $frontend = 'stormfront'
-            elsif ARGV.grep(/--genie/).any?
+            elsif ARGV.grep(/--genie/i).any?
               processed_options[:game_host] = 'dr.simutronics.net'
               processed_options[:game_port] = 11124
               $frontend = 'genie'
             else
               processed_options[:game_host] = 'dr.simutronics.net'
               processed_options[:game_port] = 11124
-              $frontend = ARGV.any? { |a| a == '--avalon' } ? 'avalon' : ARGV.any? { |a| a == '--frostbite' } ? 'frostbite' : 'wizard'
+              $frontend = ARGV.any? { |a| a =~ /^--avalon$/i } ? 'avalon' : ARGV.any? { |a| a =~ /^--frostbite$/i } ? 'frostbite' : ARGV.any? { |a| a =~ /^--saga$/i } ? 'saga' : 'wizard'
             end
           else
             $platinum = false
-            if ARGV.any? { |a| a == '-s' || a == '--stormfront' }
+            if ARGV.any? { |a| a =~ /^-s$/i || a =~ /^--stormfront$/i }
               processed_options[:game_host] = 'dr.simutronics.net'
               processed_options[:game_port] = ARGV.include?('--test') ? 11624 : 11024
               $frontend = 'stormfront'
-            elsif ARGV.grep(/--genie/).any?
+            elsif ARGV.grep(/--genie/i).any?
               processed_options[:game_host] = 'dr.simutronics.net'
               processed_options[:game_port] = ARGV.include?('--test') ? 11624 : 11024
               $frontend = 'genie'
             else
               processed_options[:game_host] = 'dr.simutronics.net'
               processed_options[:game_port] = ARGV.include?('--test') ? 11624 : 11024
-              $frontend = ARGV.any? { |a| a == '--avalon' } ? 'avalon' : ARGV.any? { |a| a == '--frostbite' } ? 'frostbite' : 'wizard'
+              $frontend = ARGV.any? { |a| a =~ /^--avalon$/i } ? 'avalon' : ARGV.any? { |a| a =~ /^--frostbite$/i } ? 'frostbite' : ARGV.any? { |a| a =~ /^--saga$/i } ? 'saga' : 'wizard'
             end
           end
         end
@@ -423,6 +376,8 @@ module Lich
             'avalon'
           elsif ARGV.any? { |a| a == '--frostbite' }
             'frostbite'
+          elsif ARGV.any? { |a| a == '--saga' }
+            'saga'
           else
             'unknown'
           end
@@ -433,6 +388,13 @@ module Lich
       def self.process_argv
         # Step 1: Clean launcher.exe
         ARGV.delete_if { |arg| arg =~ /launcher\.exe/i }
+
+        begin
+          ArgNormalization.normalize!(ARGV)
+        rescue ArgumentError => e
+          $stderr.puts "error: #{e.message}"
+          exit 1
+        end
 
         # Step 2: Handle early-exit CLI operations (now in lib/common/cli/cli_orchestration.rb)
         Lich::Common::CLI::CLIOrchestration.execute

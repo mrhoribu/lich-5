@@ -1,35 +1,8 @@
 =begin
 xmlparser.rb: Core lich file that defines the data extracted from SIMU's XML.
-
-    Maintainer: Elanthia-Online
-    Original Author: Tillmen, others
-    game: Gemstone
-    tags: CORE, spells
-    required: Lich > 5.7
-    version: 1.3.4
-
-  changelog:
-    v1.3.4 (2025-01-04)
-      Feature: Add support for room IDs in DR
-    v1.3.3 (2024-10-31)
-      Feature: Add DR Active Spells to XMLData
-    v1.3.2 (2024-10-17)
-      Bugfix: Simu breaking change for UID and roomname logic
-    v1.3.1 (2024-09-11)
-      Split out if/elif block for better tag detection in DR
-    v1.3.0 (2023-11-19)
-      Add usage of new Lich::Claim module
-    v1.2.1 (2022-05-29)
-      Logic to avoid adding 'Cooldown' tag to any spell with text 'Recovery'
-      (for 599, Rapid Fire Recovery) in XMLData.active_spells
-    v1.2.0 (2022-03-09)
-      Adding the tags 'Cooldown' and 'Debuff' so that spell-list.xml spell detection of 'Cooldown' and recovery is back in operation.
-    v1.1.0 (2022-03-08)
-      rebaselined as xmlparser.rb to support continuing game changes
-    v1.0.0
-      Initial release and subsequent modifications as SIMU XML changes warranted
-
 =end
+
+require File.join(LIB_DIR, 'common', 'xml_entities.rb')
 
 module Lich
   module Common
@@ -45,12 +18,13 @@ module Lich
                   :next_level_text, :society_task, :stow_container_id, :name, :game, :in_stream,
                   :player_id, :prompt, :current_target_ids, :current_target_id, :room_window_disabled,
                   :dialogs, :room_id, :previous_nav_rm, :concentration, :max_concentration,
-                  :arrival_pcs, :room_player_hidden
+                  :arrival_pcs, :room_player_hidden, :field_exp, :max_field_exp,
+                  :ascension_exp, :exp, :until_next, :fashlonae, :lumnis, :rpa,
+                  :room_climate, :room_terrain, :room_weather, :room_bonfire,
+                  :room_inside, :room_water, :room_sanctuary, :room_realm, :assess
       attr_accessor :send_fake_tags
 
       @@warned_deprecated_spellfront = 0
-
-      include REXML::StreamListener
 
       def initialize
         @buffer = String.new
@@ -82,7 +56,7 @@ module Lich
         @nerve_tracker_num = 0
         @nerve_tracker_active = 'no'
         @server_time = Time.now.to_i
-        @server_time_offset = 0
+        @server_time_offset = 0.0
         @roundtime_end = 0
         @cast_roundtime_end = 0
         @last_pulse = Time.now.to_i
@@ -90,6 +64,7 @@ module Lich
         @next_level_value = 0
         @next_level_text = String.new
         @current_target_ids = Array.new
+        @pending_crtr_status = Hash.new
 
         @room_count = 0
         @room_title = String.new
@@ -97,6 +72,14 @@ module Lich
         @room_description = String.new
         @room_exits = Array.new
         @room_exits_string = String.new
+        @room_climate = 0
+        @room_terrain = 0
+        @room_weather = 0
+        @room_bonfire = 0
+        @room_inside = 0
+        @room_water = 0
+        @room_sanctuary = 0
+        @room_realm = 0
 
         @familiar_room_title = String.new
         @familiar_room_description = String.new
@@ -129,6 +112,14 @@ module Lich
         @stance_value = 0
         @mind_text = String.new
         @mind_value = 0
+        @field_exp = 0
+        @max_field_exp = 0
+        @ascension_exp = 0
+        @exp = 0
+        @until_next = 0
+        @fashlonae = nil
+        @lumnis = nil
+        @rpa = nil
         @prepared_spell = 'None'
         @encumbrance_text = String.new
         @encumbrance_full_text = String.new
@@ -148,6 +139,18 @@ module Lich
         @arrival_pcs = []
         @check_obvious_hiding = false
         @room_player_hidden = false
+
+        # assess (combat situation) stream tracking
+        @assess = []
+        @assess_buffer = nil
+        @assess_ids = []
+
+        # Ox SAX bridge state (see start_element/attr/attrs_done/error below):
+        # the element/attributes being accumulated and parse errors for the
+        # fragment currently being parsed.
+        @sax_element = nil
+        @sax_attributes = {}
+        @sax_parse_errors = []
       end
 
       # for backwards compatibility
@@ -182,6 +185,14 @@ module Lich
         @active_ids = Array.new
         @current_stream = String.new
         @current_style = String.new
+        @sax_parse_errors = []
+        # A <crtrStatus> tag can be fully parsed and cached here while the
+        # matching bold <a> text is still in an as-yet-unparsed remainder of
+        # the fragment. If a malformed/truncated fragment forces a reset in
+        # that window, an uncleared entry would sit here indefinitely and
+        # could misapply to an unrelated creature that later reuses the same
+        # exist id (ids are recycled - see Creature.targets' notes).
+        @pending_crtr_status.clear
       end
 
       def safe_to_respond?
@@ -238,6 +249,114 @@ module Lich
 
       PSM_3_DIALOG_IDS = ["Buffs", "Active Spells", "Debuffs", "Cooldowns"]
 
+      # assess stream parsing
+      ASSESS_RANGES = { 'melee' => :melee, 'pole weapon' => :pole, 'missile' => :missile }.freeze
+      ASSESS_RELATION = /^(?<relation>moving to flank|flanking|facing|behind|in front of|beside|advancing on|next to|to (?:the )?(?:left|right) of)\s+(?<target>.+)$/.freeze
+
+      # Parse a single reconstructed line from the 'assess' (combat situation) stream
+      # into a structured entry. `ids` is the ordered list of look-target ids pulled
+      # from the line's <d cmd='look #id'> tags (subject first, then target).
+      # Returns a Hash, or nil for the header / unparseable lines.
+      def parse_assess_line(text, ids)
+        text = text.to_s.strip
+        return nil if text.empty?
+        return nil if text =~ /assess your combat situation/i
+
+        # drop the trailing "  | F" face-hint (the F lives in a <d cmd='face #id'> tag);
+        # anchored to the pipe + trailing token so a stray '|' mid-line can't eat text
+        text = text.sub(/\s+\|\s+\S+\s*$/, '').strip
+
+        m = text.match(/^(?<name>.+?)\s+\((?:(?<number>\d+):\s*)?(?<status>[^)]*)\)\s+(?:is|are)\s+(?<rest>.+?)\s+at\s+(?<range>melee|pole weapon|missile)\s+range\b/i)
+        return nil unless m
+
+        name   = m[:name].strip
+        number = m[:number] && m[:number].to_i
+        status = m[:status].strip
+        range  = ASSESS_RANGES[m[:range].downcase]
+        rest   = m[:rest].strip
+
+        # the target may carry its own assess number, e.g. "facing a jeol moradu (2)"
+        target_number = nil
+        if rest =~ /\((\d+)\)\s*$/
+          target_number = $1.to_i
+          rest = rest.sub(/\s*\(\d+\)\s*$/, '').strip
+        end
+
+        if (rm = rest.match(ASSESS_RELATION))
+          relation = rm[:relation]
+          target   = rm[:target].strip
+        else
+          relation = rest
+          target   = nil
+        end
+        relation = 'flanking' if relation == 'moving to flank'
+
+        is_self = name.casecmp?('you')
+        if is_self
+          subject_id = nil
+          target_id  = ids[0]
+        else
+          subject_id = ids[0]
+          target_id  = (target && target =~ /^you$/i) ? nil : ids[1]
+        end
+        is_pc = subject_id.to_s.start_with?('-')
+
+        {
+          name: name, id: subject_id, number: number, status: status,
+          relation: relation, target: target, target_id: target_id,
+          target_number: target_number, range: range, self: is_self, pc: is_pc
+        }
+      end
+
+      # convenience: just the creatures (positive ids; excludes self and PCs)
+      def assess_creatures
+        @assess.reject { |e| e[:self] || e[:pc] }
+      end
+
+      # Ox::Sax interface: Ox parses the server stream directly into XMLData (see
+      # Game.process_xml_data). Ox fires start_element, then attr per attribute,
+      # then attrs_done, then text/children, then end_element. Attributes are
+      # accumulated and flushed to tag_start (matching the old REXML-style single
+      # tag_start(name, hash) call). The game stream is Windows-1252, so byte
+      # content is tagged with that encoding; names are ASCII.
+      def start_element(name)
+        @sax_element = name
+        @sax_attributes = {}
+      end
+
+      # Values are left in Ox's native encoding rather than retagged: REXML handed
+      # these callbacks UTF-8 (effectively ASCII for the scrubbed game stream), so
+      # force-tagging Windows-1252 was both a divergence from the pre-Ox behavior
+      # and the source of the entity corruption. Ox runs with convert_special:
+      # false, so XmlEntities.decode restores the standard entities here.
+      def attr(name, value)
+        @sax_attributes[name] = XmlEntities.decode(value)
+      end
+
+      def attrs_done
+        tag_start(@sax_element, @sax_attributes)
+      end
+
+      def end_element(name)
+        tag_end(name)
+      end
+
+      # REXML routed CDATA through text handling; do the same.
+      def cdata(value)
+        text(value)
+      end
+
+      # Ox reports parse problems here instead of raising, then keeps parsing,
+      # auto-balancing whatever was malformed. Collect the messages so
+      # Game.process_xml_data can tell Simu's routine almost-XML from a
+      # genuinely truncated (desynced) fragment once the parse completes.
+      # The caller clears this between fragments.
+      attr_reader :sax_parse_errors
+
+      def error(message, line, column)
+        @sax_parse_errors << "#{message} (line #{line}, column #{column})"
+      end
+
       def tag_start(name, attributes)
         # This is called once per element by REXML in games.rb
         # https://ruby-doc.org/stdlib-2.6.1/libdoc/rexml/rdoc/REXML/StreamListener.html
@@ -247,10 +366,18 @@ module Lich
 
           if name == 'nav'
             Lich::Claim.lock if defined?(Lich::Claim)
+            Lich::Gemstone::Overwatch.room_with_hiders_reset if defined?(Lich::Gemstone::Overwatch)
             GameObj.clear_loot
             GameObj.clear_npcs
             GameObj.clear_pcs
             GameObj.clear_room_desc
+            # Creature tracks its own room roster independently of GameObj
+            # (see lib/gemstone/creature.rb) - not loaded for DR sessions.
+            Lich::Gemstone::Creature.clear_room if defined?(Lich::Gemstone::Creature)
+            # Any <crtrStatus> cached for the room being left is scoped to
+            # that room - don't let it survive to misapply if the id gets
+            # reused elsewhere.
+            @pending_crtr_status.clear
             @check_obvious_hiding = true
             unless XMLData.game =~ /^DR/
               @previous_nav_rm = @room_id
@@ -284,6 +411,8 @@ module Lich
             if attributes['id'] == 'room objs'
               GameObj.clear_loot
               GameObj.clear_npcs
+              Lich::Gemstone::Creature.clear_room if defined?(Lich::Gemstone::Creature)
+              @pending_crtr_status.clear
             elsif attributes['id'] == 'room players'
               GameObj.clear_pcs
             elsif attributes['id'] == 'room exits'
@@ -298,6 +427,21 @@ module Lich
           if name =~ /^(?:a|right|left)$/
             @obj_exist = attributes['exist']
             @obj_noun = attributes['noun']
+          end
+          if name == 'crtrStatus'
+            # Self-closing and self-contained (carries its own id), so it needs
+            # no surrounding-tag context, unlike the bolded <a> name path below.
+            # Always stash rather than applying directly even when the
+            # creature is already known: Creature.register (and the room-in
+            # marking it does) only ever runs from the <a> text path below, so
+            # syncing here and skipping that path would update the instance's
+            # flags correctly while silently leaving it out of the room
+            # roster after the next clear_room - it would sync but never
+            # reappear in Creature.targets/.in_room. Deferring to the text()
+            # handler keeps registration/room-marking and flag application on
+            # the same path for both new and already-known creatures.
+            crtr_id = attributes['exist']
+            @pending_crtr_status[crtr_id] = attributes.reject { |k, _| k == 'exist' } if crtr_id
           end
           if name == 'inv'
             if attributes['id'] == 'stow'
@@ -318,18 +462,40 @@ module Lich
             ActiveSpell.request_update
           end
           if name == 'resource'
-            # rubocop:disable Lint/Void
             nil
-            # rubocop:enable Lint/Void
+          end
+          if name == 'roommeta'
+            @room_weather = attributes['weather'].to_i if attributes['weather']
+            @room_bonfire = attributes['bonfire'].to_i if attributes['bonfire']
+            @room_inside = attributes['inside'].to_i if attributes['inside']
+            @room_water = attributes['water'].to_i if attributes['water']
+            @room_sanctuary = attributes['sanctuary'].to_i if attributes['sanctuary']
+            @room_realm = attributes['realm'].to_i if attributes['realm']
+            @room_climate = attributes['climate'].to_i if attributes['climate']
+            @room_terrain = attributes['terrain'].to_i if attributes['terrain']
           end
           if name == 'pushStream'
             @in_stream = true
             @current_stream = attributes['id'].to_s
+            if attributes['id'].to_s == 'assess'
+              @assess_buffer = String.new
+              @assess_ids = []
+            end
             if XMLData.game =~ /^GS/
               GameObj.clear_inv if attributes['id'].to_s == 'inv'
+              GameObj.clear_reserve if attributes['id'].to_s == 'reserve'
             end
           end
+
+          if name == 'd' && @current_stream == 'assess'
+            @assess_ids << $1 if attributes['cmd'].to_s =~ /look #(-?\d+)/
+          end
           if name == 'popStream'
+            if @current_stream == 'assess' && @assess_buffer
+              entry = parse_assess_line(@assess_buffer, @assess_ids)
+              @assess << entry if entry
+              @assess_buffer = nil
+            end
             if attributes['id'] == 'room'
               unless @room_window_disabled
                 @room_count += 1
@@ -381,7 +547,7 @@ module Lich
 
           if name == 'prompt'
             @server_time = attributes['time'].to_i
-            @server_time_offset = (Time.now.to_i - @server_time)
+            @server_time_offset = (Time.now.to_f - @server_time)
             $_CLIENT_.puts "\034GSq#{sprintf('%010d', @server_time)}\r\n" if @send_fake_tags
 
             if @dr_active_spell_tracking
@@ -431,6 +597,19 @@ module Lich
             elsif attributes['id'] == 'mindState'
               @mind_text = attributes['text']
               @mind_value = attributes['value'].to_i
+              @field_exp = attributes['field_exp'].to_i if attributes['field_exp']
+              @max_field_exp = attributes['max_field_exp'].to_i if attributes['max_field_exp']
+              @ascension_exp = attributes['ascension_exp'].to_i if attributes['ascension_exp']
+              @exp = attributes['exp'].to_i if attributes['exp']
+              @until_next = attributes['until_next'].to_i if attributes['until_next']
+              # lumnis and rpa are only sent while active; fashlonae is sent
+              # whenever an orb is redeemed (1 = redeemed/inactive, 2 = active).
+              # All three are cleared back to nil whenever a fresh mindState
+              # progressBar omits them. rpa can be fractional (e.g. 1.5), so it
+              # is parsed as a float.
+              @fashlonae = attributes['fashlonae'] ? attributes['fashlonae'].to_i : nil
+              @lumnis = attributes['lumnis'] ? attributes['lumnis'].to_i : nil
+              @rpa = attributes['rpa'] ? attributes['rpa'].to_f : nil
               $_CLIENT_.puts "\034GSr#{MINDMAP[@mind_text]}\r\n" if @send_fake_tags
             elsif attributes['id'] == 'health'
               @health, @max_health = attributes['text'].scan(/-?\d+/).collect { |num| num.to_i }
@@ -560,7 +739,7 @@ module Lich
                       end
                     }
                     @nerve_tracker_num += 1
-                    DownstreamHook.add('nerve_tracker', action)
+                    DownstreamHook.add('nerve_tracker', action, persist: true) # engine-managed, toggled by the parser
                     Game._puts "#{$cmd_prefix}health"
                   }
                 end
@@ -596,11 +775,13 @@ module Lich
           if (name == 'clearStream')
             if attributes['id'] == 'bounty'
               @bounty_task = String.new
+            elsif attributes['id'] == 'assess'
+              @assess = []
             end
           end
           if (name == 'playerID')
             @player_id = attributes['id']
-            unless $frontend =~ /^(?:wizard|avalon)$/
+            unless Frontend.supports_gsl?
               if Lich.inventory_boxes(@player_id)
                 DownstreamHook.remove('inventory_boxes_off')
               end
@@ -627,7 +808,7 @@ module Lich
             unless File.exist?("#{DATA_DIR}/#{@game}/#{@name}")
               Dir.mkdir("#{DATA_DIR}/#{@game}/#{@name}")
             end
-            if $frontend =~ /^(?:wizard|avalon)$/
+            if Frontend.supports_gsl?
               Game._puts "#{$cmd_prefix}_flag Display Dialog Boxes 0"
               sleep 0.05
               Game._puts "#{$cmd_prefix}_injury 2"
@@ -657,7 +838,6 @@ module Lich
             Game._puts("#{$cmd_prefix}_flag Display Inventory Boxes 1")
           end
         rescue
-          $stdout.puts "--- error: XMLParser.tag_start: #{$!}"
           Lich.log "error: XMLParser.tag_start: #{$!}\n\t#{$!.backtrace.join("\n\t")}"
           sleep 0.1
           reset
@@ -665,8 +845,9 @@ module Lich
       end
 
       def text(text_string)
-        # This is called once per element with text in it by REXML in games.rb
-        # https://ruby-doc.org/stdlib-2.6.1/libdoc/rexml/rdoc/REXML/StreamListener.html
+        # Called by Ox once per text node. Decode the standard XML entities (Ox
+        # runs with convert_special: false; see Lich::Common::XmlEntities).
+        text_string = XmlEntities.decode(text_string)
         begin
           # fixme: /<stream id="Spells">.*?<\/stream>/m
           # $_CLIENT_.write(text_string) unless ($frontend != 'suks') or (@current_stream =~ /^(?:spellfront|inv|bounty|society)$/) or @active_tags.any? { |tag| tag =~ /^(?:compDef|inv|component|right|left|spell)$/ } or (@active_tags.include?('stream') and @active_ids.include?('Spells')) or (text_string == "\n" and (@last_tag =~ /^(?:popStream|prompt|compDef|dialogData|openDialog|switchQuickBar|component)$/))
@@ -748,7 +929,12 @@ module Lich
               if @active_tags.include?('a')
                 if @bold
                   GameObj.new_npc(@obj_exist, @obj_noun, text_string)
-                  Creature.register(text_string, @obj_exist, @obj_noun) if XMLData.current_target_ids.include?(@obj_exist)
+                  if XMLData.current_target_ids.include?(@obj_exist) || @pending_crtr_status.key?(@obj_exist)
+                    creature = Creature.register(text_string, @obj_exist, @obj_noun)
+                    if creature && (pending_flags = @pending_crtr_status.delete(@obj_exist))
+                      creature.sync_crtr_status(pending_flags)
+                    end
+                  end
                 else
                   GameObj.new_loot(@obj_exist, @obj_noun, text_string)
                 end
@@ -757,9 +943,14 @@ module Lich
               end
             elsif @active_ids.include?('room players')
               if @active_tags.include?('a')
-                @pc = GameObj.new_pc(@obj_exist, @obj_noun, "#{@player_title}#{text_string}", @player_status)
+                if @obj_exist.to_s.start_with?('-')
+                  @pc = GameObj.new_pc(@obj_exist, @obj_noun, "#{@player_title}#{text_string}", @player_status)
+                  @arrival_pcs.push(@pc.noun) if (defined?(Lich::Claim) && Lich::Claim::Lock.owned?)
+                else
+                  @pc = nil
+                end
                 @player_status = nil
-                @arrival_pcs.push(@pc.noun) if (defined?(Lich::Claim) && Lich::Claim::Lock.owned?)
+                @player_title = nil
               else
                 if @game =~ /^DR/
                   GameObj.clear_pcs
@@ -793,7 +984,7 @@ module Lich
                     GameObj.new_pc(nil, noun, player, status)
                   }
                 else
-                  if (text_string =~ /^ who (?:is|appears) ([\w\s]+)(?:,| and|\.|$)/) or (text_string =~ / \(([\w\s]+)\)(?: \(([\w\s]+)\))?/)
+                  if @pc && ((text_string =~ /^ who (?:is|appears) ([\w\s]+)(?:,| and|\.|$)/) || (text_string =~ / \(([\w\s]+)\)(?: \(([\w\s]+)\))?/))
                     if @pc.status
                       @pc.status.concat " #{$1}"
                     else
@@ -825,8 +1016,12 @@ module Lich
             @bounty_task += text_string
           elsif @current_stream == 'society'
             @society_task = text_string
+          elsif @current_stream == 'assess'
+            @assess_buffer.concat(text_string) if @assess_buffer
           elsif (@current_stream == 'inv') and @active_tags.include?('a')
             GameObj.new_inv(@obj_exist, @obj_noun, text_string, nil)
+          elsif (@current_stream == 'reserve') and @active_tags.include?('a')
+            GameObj.new_reserve(@obj_exist, @obj_noun, text_string)
           elsif @check_obvious_hiding && text_string =~ /obvious signs of someone hiding/
             @room_player_hidden = true
           elsif @current_stream == 'familiar'
@@ -877,7 +1072,6 @@ module Lich
             end
           end
         rescue
-          $stdout.puts "--- error: XMLParser.text: #{$!}"
           Lich.log "error: XMLParser.text: #{$!}\n\t#{$!.backtrace.join("\n\t")}"
           sleep 0.1
           reset
@@ -885,8 +1079,13 @@ module Lich
       end
 
       def tag_end(name)
-        # This is called once per element by REXML in games.rb
-        # https://ruby-doc.org/stdlib-2.6.1/libdoc/rexml/rdoc/REXML/StreamListener.html
+        # Called once per element close. Ox synthesizes an end for a stray closing
+        # tag -- a close with no matching open (e.g. a desynced </prompt> whose
+        # <prompt> was in a prior, truncated read). tag_start never pushed it (Ox
+        # fires no attrs_done for a synthetic start), so popping here would remove
+        # the wrong element and the inv/compass end-handlers would fire spuriously.
+        # Ignore any close that does not match the currently-open tag.
+        return unless @active_tags.last == name
 
         begin
           if @game =~ /^DR/
@@ -941,7 +1140,6 @@ module Lich
           @last_tag = @active_tags.pop
           @last_id = @active_ids.pop
         rescue
-          $stdout.puts "--- error: XMLParser.tag_end: #{$!}"
           Lich.log "error: XMLParser.tag_end: #{$!}\n\t#{$!.backtrace.join("\n\t")}"
           sleep 0.1
           reset
