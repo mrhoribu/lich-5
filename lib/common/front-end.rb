@@ -6,6 +6,7 @@ require 'fileutils'
 require 'fiddle'
 require 'fiddle/import'
 require 'open3'
+require 'rbconfig'
 
 # Windows API modules for frontend PID detection and window focus
 # These need to be defined at the top level
@@ -35,6 +36,8 @@ end
 module Lich
   module Common
     module Frontend
+      require_relative 'frontend/warlock'
+
       @session_file = nil
       @tmp_session_dir = File.join Dir.tmpdir, "simutronics", "sessions"
       @frontend_pid = nil
@@ -226,7 +229,6 @@ module Lich
       end
 
       # Frontend PID tracking functionality
-
       # Get the current frontend PID
       # @return [Integer, nil] The PID if set, nil otherwise
       def self.pid
@@ -248,7 +250,7 @@ module Lich
         Lich.log "Parent process PID: #{parent_pid}"
 
         # Let's see what process this actually is on Windows
-        if RUBY_PLATFORM =~ /mingw|mswin/
+        if OS.windows?
           begin
             require 'win32ole'
             wmi = WIN32OLE.connect('winmgmts://')
@@ -336,12 +338,10 @@ module Lich
       # Detect the current platform
       # @return [Symbol] :windows, :macos, :linux, or :unsupported
       def self.detect_platform
-        case RUBY_PLATFORM
-        when /mingw|mswin/ then :windows
-        when /darwin/      then :macos
-        when /linux/       then :linux
-        else                    :unsupported
-        end
+        return :windows if OS.windows?
+        return :macos if OS.mac?
+        return :linux if OS.linux?
+        return :unsupported
       end
 
       # Resolve PID by walking up process tree to find window owner
@@ -529,10 +529,31 @@ module Lich
       # Ensure Windows modules are loaded (they're defined at top level)
       def self.ensure_windows_modules
         # Check if modules exist - they should be defined at file load time
-        if RUBY_PLATFORM =~ /mingw|mswin/
+        if OS.windows?
           return defined?(::Win32Enum) && defined?(::WinAPI)
         end
         false
+      end
+
+      def self.supports_xml?
+        @supports_xml
+      end
+
+      def self.supports_xml=(value)
+        @supports_xml = value
+      end
+
+      def self.client
+        @client
+      end
+
+      def self.client=(value)
+        @client = value
+      end
+
+      # Alias for detect_platform
+      class << self
+        alias_method :operating_system, :detect_platform
       end
     end
   end
