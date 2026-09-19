@@ -59,6 +59,9 @@ module Lich
         @nerve_tracker_active = 'no'
         @server_time = Time.now.to_i
         @server_time_offset = 0.0
+        @server_time_offset_bound = nil
+        @server_time_offset_at = nil
+        @last_prompt_local_time = nil
         @roundtime_end = 0
         @cast_roundtime_end = 0
         @last_pulse = Time.now.to_i
@@ -651,8 +654,34 @@ module Lich
           end
 
           if name == 'prompt'
-            @server_time = attributes['time'].to_i
-            @server_time_offset = (Time.now.to_f - @server_time)
+            now = Time.now.to_f
+            new_server_time = attributes['time'].to_i
+
+            # The server only ever sends whole-second timestamps, so any single
+            # prompt's (now - server_time) sample carries up to ~1s of truncation
+            # error on top of ordinary network jitter - recomputing the offset
+            # from every prompt (the old behavior) let that noise move the
+            # estimate around by up to a second on every single prompt. Instead,
+            # only treat the moment the server's integer second actually rolls
+            # over as informative: the true offset at that instant is bounded by
+            # the gap since the previous prompt, a much tighter window than a
+            # full second once prompts are arriving faster than 1/sec. Among
+            # rollover observations, keep the one with the tightest bound (least
+            # latency = least uncertainty - the classic NTP "min-delay" filter),
+            # and let a stale best bound expire so a single lucky low-latency
+            # sample can't permanently mask a later real shift in network
+            # conditions.
+            if new_server_time != @server_time
+              bound = @last_prompt_local_time && (now - @last_prompt_local_time)
+              stale = @server_time_offset_at.nil? || (now - @server_time_offset_at > 300)
+              if bound.nil? || stale || @server_time_offset_bound.nil? || bound <= @server_time_offset_bound
+                @server_time_offset = now - new_server_time
+                @server_time_offset_bound = bound
+                @server_time_offset_at = now
+              end
+            end
+            @last_prompt_local_time = now
+            @server_time = new_server_time
             $_CLIENT_.puts "\034GSq#{sprintf('%010d', @server_time)}\r\n" if @send_fake_tags
 
             # A prompt terminates the command burst and is the reliable close

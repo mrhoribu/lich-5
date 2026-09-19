@@ -509,6 +509,64 @@ RSpec.describe Lich::Common::XMLParser do
     end
   end
 
+  describe 'server_time_offset (prompt-driven clock sync)' do
+    # The wire format only ever carries whole-second server timestamps, so a
+    # single prompt's (now - server_time) sample is noisy: it moves by up to a
+    # full second purely from truncation, independent of real network jitter.
+    # These specs drive the parser's local clock via a scripted Time.now so the
+    # rollover-edge / min-bound convergence logic is exercised deterministically.
+    def feed_prompt(local_time, server_time)
+      allow(Time).to receive(:now).and_return(Time.at(local_time))
+      parser.tag_start('prompt', { 'time' => server_time.to_s })
+      parser.tag_end('prompt')
+    end
+
+    it 'does not update the offset on repeated prompts within the same server second' do
+      feed_prompt(100.0, 1000)
+      first_offset = parser.server_time_offset
+
+      feed_prompt(100.4, 1000)
+
+      expect(parser.server_time_offset).to eq(first_offset)
+    end
+
+    it 'derives the offset from a rollover edge, not a raw (now - server_time) sample' do
+      feed_prompt(100.0, 1000) # bootstrap sample, offset = 100.0 - 1000 = -900.0
+      feed_prompt(100.9, 1001) # rollover: bound = 0.9s, offset = 100.9 - 1001 = -900.1
+
+      expect(parser.server_time_offset).to eq(-900.1)
+    end
+
+    it 'prefers a tighter-bound rollover sample over a later, noisier one' do
+      feed_prompt(100.0, 1000)         # bootstrap
+      feed_prompt(100.1, 1001)         # tight rollover: bound = 0.1s, offset = -900.9
+      tight_offset = parser.server_time_offset
+
+      feed_prompt(101.9, 1002)         # loose rollover: bound = 1.8s (laggy) - should lose
+
+      expect(parser.server_time_offset).to eq(tight_offset)
+    end
+
+    it 'lets a stale best-bound estimate expire so the offset can re-converge' do
+      feed_prompt(100.0, 1000)   # bootstrap
+      feed_prompt(100.1, 1001)   # tight rollover, bound = 0.1s
+      tight_offset = parser.server_time_offset
+
+      # Two more prompts at the *same* server second (no rollover) just push
+      # the local clock forward past the 300s staleness window without ever
+      # touching the offset - it holds at the tight-bound estimate.
+      feed_prompt(101.0, 1001)
+      feed_prompt(500.5, 1001)
+      expect(parser.server_time_offset).to eq(tight_offset)
+
+      # This rollover's own bound (0.4s) is looser than the stored best (0.1s)
+      # and would normally lose - but the best bound is now >300s stale, so it
+      # is accepted anyway, letting the estimate re-converge.
+      feed_prompt(500.9, 1002)
+      expect(parser.server_time_offset).to eq(500.9 - 1002)
+    end
+  end
+
   # DragonRealms only: an item taken into a hand is no longer worn or in a
   # container, so the <right>/<left> handler drops any stale placement of it.
   # GemStone is unaffected (its own inv stream is authoritative), which these
