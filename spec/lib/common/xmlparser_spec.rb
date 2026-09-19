@@ -510,60 +510,109 @@ RSpec.describe Lich::Common::XMLParser do
   end
 
   describe 'server_time_offset (prompt-driven clock sync)' do
-    # The wire format only ever carries whole-second server timestamps, so a
-    # single prompt's (now - server_time) sample is noisy: it moves by up to a
-    # full second purely from truncation, independent of real network jitter.
-    # These specs drive the parser's local clock via a scripted Time.now so the
-    # rollover-edge / min-bound convergence logic is exercised deterministically.
-    def feed_prompt(local_time, server_time)
+    # <prompt time="..."> is whole-second precision, so a single sample of
+    # (now - server_time) equals offset_true + latency + frac, with latency
+    # (network/queue delay) and frac (the 0..1s truncation remainder) both
+    # >= 0 - the raw sample is never smaller than the truth. These specs
+    # drive the parser's clocks via scripted Time.now / CLOCK_MONOTONIC so
+    # the min-filter, staleness-expiry, and clock-step-guard logic are all
+    # exercised deterministically.
+    #
+    # `parser` is a memoized `subject`, built lazily on first reference. It's
+    # forced here, before any example stubs Time.now, so construction always
+    # sees the real clock - otherwise the first `feed_prompt` in each example
+    # would construct it under the *stubbed* clock, silently changing what
+    # `@server_time` (and the offset math relative to it) starts from.
+    before { parser }
+
+    def feed_prompt(local_time, server_time, monotonic_time: local_time)
       allow(Time).to receive(:now).and_return(Time.at(local_time))
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(monotonic_time)
       parser.tag_start('prompt', { 'time' => server_time.to_s })
       parser.tag_end('prompt')
     end
 
     it 'does not update the offset on repeated prompts within the same server second' do
-      feed_prompt(100.0, 1000)
+      feed_prompt(100.0, 1000) # bootstrap, offset = 100.0 - 1000 = -900.0
       first_offset = parser.server_time_offset
 
-      feed_prompt(100.4, 1000)
+      feed_prompt(100.4, 1000) # same second: candidate -899.6 is worse, rejected
 
       expect(parser.server_time_offset).to eq(first_offset)
     end
 
-    it 'derives the offset from a rollover edge, not a raw (now - server_time) sample' do
-      feed_prompt(100.0, 1000) # bootstrap sample, offset = 100.0 - 1000 = -900.0
-      feed_prompt(100.9, 1001) # rollover: bound = 0.9s, offset = 100.9 - 1001 = -900.1
+    it 'adopts a rollover sample when it improves on the current estimate' do
+      feed_prompt(100.0, 1000) # bootstrap, offset = -900.0
+      feed_prompt(100.9, 1001) # candidate = 100.9 - 1001 = -900.1, better, accepted
 
       expect(parser.server_time_offset).to eq(-900.1)
     end
 
-    it 'prefers a tighter-bound rollover sample over a later, noisier one' do
-      feed_prompt(100.0, 1000)         # bootstrap
-      feed_prompt(100.1, 1001)         # tight rollover: bound = 0.1s, offset = -900.9
-      tight_offset = parser.server_time_offset
+    it 'rejects a worse rollover sample even though it is a legitimate later reading' do
+      feed_prompt(100.0, 1000) # bootstrap, offset = -900.0
+      feed_prompt(100.1, 1001) # candidate -900.9, better, accepted
+      best_offset = parser.server_time_offset
 
-      feed_prompt(101.9, 1002)         # loose rollover: bound = 1.8s (laggy) - should lose
+      # A genuine rollover (server_time advances) whose own candidate is
+      # worse - because more wall time passed than server time did - is
+      # still rejected outright, well within the staleness window.
+      feed_prompt(103.0, 1002) # candidate = 103.0 - 1002 = -899.0, worse
 
-      expect(parser.server_time_offset).to eq(tight_offset)
+      expect(parser.server_time_offset).to eq(best_offset)
     end
 
-    it 'lets a stale best-bound estimate expire so the offset can re-converge' do
-      feed_prompt(100.0, 1000)   # bootstrap
-      feed_prompt(100.1, 1001)   # tight rollover, bound = 0.1s
-      tight_offset = parser.server_time_offset
+    it 'regression: a queue-drained batch (near-zero parse gap) cannot out-rank a later, marginally-better sample from a normal gap' do
+      # The bug this guards against: an earlier version of this filter kept
+      # whichever sample was *parsed* closest in time to the previous one
+      # (an inter-prompt "bound"), on the theory that a tight gap meant low
+      # latency. It doesn't - a backlog drains back-to-back with a near-zero
+      # gap between samples regardless of how long each one waited in queue,
+      # so that heuristic could lock in the worst sample in the batch and
+      # then reject every better, normally-paced sample for up to
+      # SERVER_TIME_OFFSET_STALE_SECONDS purely because its gap was larger.
+      # The current filter has no notion of "gap" at all, so it can't
+      # regress this way: only the candidate's own value decides.
+      feed_prompt(100.0, 1000)    # bootstrap
+      feed_prompt(100.0001, 1001) # batch sample: 0.1ms parse gap
+      batch_offset = parser.server_time_offset
 
-      # Two more prompts at the *same* server second (no rollover) just push
-      # the local clock forward past the 300s staleness window without ever
-      # touching the offset - it holds at the tight-bound estimate.
-      feed_prompt(101.0, 1001)
-      feed_prompt(500.5, 1001)
-      expect(parser.server_time_offset).to eq(tight_offset)
+      feed_prompt(102.0, 1003) # ordinary ~2s gap, only marginally better
 
-      # This rollover's own bound (0.4s) is looser than the stored best (0.1s)
-      # and would normally lose - but the best bound is now >300s stale, so it
-      # is accepted anyway, letting the estimate re-converge.
-      feed_prompt(500.9, 1002)
-      expect(parser.server_time_offset).to eq(500.9 - 1002)
+      expect(parser.server_time_offset).to be < batch_offset
+      expect(parser.server_time_offset).to eq(102.0 - 1003)
+    end
+
+    it 'holds the estimate under the staleness window, then accepts a fresh sample unconditionally once stale' do
+      feed_prompt(100.0, 1000) # bootstrap, offset = -900.0
+      feed_prompt(100.1, 1001) # candidate -900.9, better, accepted
+      good_offset = parser.server_time_offset
+
+      # Same server second, clocks still in sync: a much worse candidate
+      # inside the staleness window is rejected, no matter how much wall
+      # time has passed, as long as it's under the window.
+      feed_prompt(200.0, 1001)
+      expect(parser.server_time_offset).to eq(good_offset)
+
+      # Past SERVER_TIME_OFFSET_STALE_SECONDS (300s) since the held estimate
+      # was set (100.1): this candidate is accepted even though it is worse
+      # in absolute terms, because the held estimate can no longer be trusted.
+      feed_prompt(401.0, 1002)
+      expect(parser.server_time_offset).to eq(401.0 - 1002)
+    end
+
+    it 'discards the held estimate immediately on a wall-clock step, even inside the staleness window' do
+      feed_prompt(100.0, 1000, monotonic_time: 100.0) # bootstrap, offset = -900.0
+      feed_prompt(100.1, 1001, monotonic_time: 100.1) # candidate -900.9, better, accepted
+      good_offset = parser.server_time_offset
+
+      # The wall clock jumps forward 10s (e.g. an NTP step) while only 0.05s
+      # of monotonic time actually elapsed - a worse candidate is accepted
+      # anyway rather than trusting a held estimate the clock jump has
+      # invalidated, and rather than waiting out the 300s staleness window.
+      feed_prompt(110.1, 1002, monotonic_time: 100.15)
+
+      expect(parser.server_time_offset).not_to eq(good_offset)
+      expect(parser.server_time_offset).to eq(110.1 - 1002)
     end
   end
 

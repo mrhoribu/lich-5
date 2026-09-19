@@ -26,6 +26,18 @@ module Lich
 
       @@warned_deprecated_spellfront = 0
 
+      # How long a server_time_offset estimate is trusted before a fresh
+      # sample is accepted unconditionally, win or lose. Not derived from any
+      # measurement - just a round number chosen to bound how long a stale
+      # estimate (e.g. from a since-resolved network condition) can linger.
+      SERVER_TIME_OFFSET_STALE_SECONDS = 300
+      # If the wall clock (Time.now) and a monotonic clock disagree about how
+      # much time passed between two prompts by more than this, the wall
+      # clock moved discontinuously (NTP step, VM resume, user changed the
+      # clock) and the held offset is discarded outright rather than waited
+      # out over SERVER_TIME_OFFSET_STALE_SECONDS.
+      SERVER_TIME_OFFSET_CLOCK_STEP_SECONDS = 2.0
+
       def initialize
         @buffer = String.new
         # @unescape = { 'lt' => '<', 'gt' => '>', 'quot' => '"', 'apos' => "'", 'amp' => '&' }
@@ -59,9 +71,8 @@ module Lich
         @nerve_tracker_active = 'no'
         @server_time = Time.now.to_i
         @server_time_offset = 0.0
-        @server_time_offset_bound = nil
         @server_time_offset_at = nil
-        @last_prompt_local_time = nil
+        @server_time_offset_monotonic_at = nil
         @roundtime_end = 0
         @cast_roundtime_end = 0
         @last_pulse = Time.now.to_i
@@ -655,32 +666,43 @@ module Lich
 
           if name == 'prompt'
             now = Time.now.to_f
+            mono_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
             new_server_time = attributes['time'].to_i
 
-            # The server only ever sends whole-second timestamps, so any single
-            # prompt's (now - server_time) sample carries up to ~1s of truncation
-            # error on top of ordinary network jitter - recomputing the offset
-            # from every prompt (the old behavior) let that noise move the
-            # estimate around by up to a second on every single prompt. Instead,
-            # only treat the moment the server's integer second actually rolls
-            # over as informative: the true offset at that instant is bounded by
-            # the gap since the previous prompt, a much tighter window than a
-            # full second once prompts are arriving faster than 1/sec. Among
-            # rollover observations, keep the one with the tightest bound (least
-            # latency = least uncertainty - the classic NTP "min-delay" filter),
-            # and let a stale best bound expire so a single lucky low-latency
-            # sample can't permanently mask a later real shift in network
-            # conditions.
-            if new_server_time != @server_time
-              bound = @last_prompt_local_time && (now - @last_prompt_local_time)
-              stale = @server_time_offset_at.nil? || (now - @server_time_offset_at > 300)
-              if bound.nil? || stale || @server_time_offset_bound.nil? || bound <= @server_time_offset_bound
-                @server_time_offset = now - new_server_time
-                @server_time_offset_bound = bound
-                @server_time_offset_at = now
-              end
+            # <prompt time="..."> is whole-second precision, so every sample
+            # of (now - server_time) equals offset_true + latency + frac,
+            # where latency (network/queue delay) and frac (the 0..1s
+            # truncation remainder) are both >= 0 - the raw sample is never
+            # smaller than the truth. Recomputing the offset from every
+            # prompt (the old behavior) let that one-sided noise move the
+            # estimate by up to ~1s per prompt.
+            #
+            # Because the error only ever inflates the sample, the minimum
+            # sample seen recently is the best available estimate (the
+            # classic NTP min-delay filter) - a bigger latency term can only
+            # push a candidate up, so a queue-delayed prompt (the login
+            # burst, a script holding the parser thread busy) can lose the
+            # minimum but never win it. Do NOT key acceptance on how close
+            # together two prompts were *parsed* instead: a backlog drains
+            # back-to-back with a near-zero gap between samples regardless of
+            # how delayed each one was, so a parse-time gap measures queue
+            # scheduling, not latency, and can pin exactly the worst sample.
+            #
+            # The held minimum is discarded outright if the wall clock and a
+            # monotonic clock disagree about elapsed time since it was set
+            # (a clock step), and otherwise expires after
+            # SERVER_TIME_OFFSET_STALE_SECONDS so a lucky sample can't mask a
+            # later real shift in conditions forever.
+            candidate = now - new_server_time
+            wall_elapsed = @server_time_offset_at && (now - @server_time_offset_at)
+            mono_elapsed = @server_time_offset_monotonic_at && (mono_now - @server_time_offset_monotonic_at)
+            clock_stepped = wall_elapsed && mono_elapsed && (wall_elapsed - mono_elapsed).abs > SERVER_TIME_OFFSET_CLOCK_STEP_SECONDS
+            stale = wall_elapsed.nil? || clock_stepped || wall_elapsed > SERVER_TIME_OFFSET_STALE_SECONDS
+            if stale || candidate <= @server_time_offset
+              @server_time_offset = candidate
+              @server_time_offset_at = now
+              @server_time_offset_monotonic_at = mono_now
             end
-            @last_prompt_local_time = now
             @server_time = new_server_time
             $_CLIENT_.puts "\034GSq#{sprintf('%010d', @server_time)}\r\n" if @send_fake_tags
 
